@@ -45,90 +45,31 @@ class MayaviView(HasTraits):
         else:
             triangles = model[2]
             x, y, z = model[0][:,0], model[0][:,1], model[0][:,2],
-            #x, y, z = zeros([len(model[0]),1],float), zeros([len(model[0]),1],float), zeros([len(model[0]),1],float)
-            #for i in range(len(model[0])):
-            #    x[i] = model[0][i][0]
-            #    y[i] = model[0][i][1]
-            #    z[i] = model[0][i][2]                
-            
+                            
             if colortriplet == 0:
                 self.plot = self.scene.mlab.triangular_mesh(x, y, z, triangles)
                     
             else: # Currently unused, but could allow for imposing alternate color schemes on mesh
                 self.plot = self.scene.mlab.triangular_mesh(x, y, z, triangles)
-
-    #def ConvertHexToFractionBlack(self,hexstring):
-    #    if hexstring == "#000000":
-    #        return 0
-    #    if hexstring == "#FF0000":
-    #        return 0.167 #formerly 0.06
-    #    if hexstring == "#964B00":
-    #        return 0.278 #formerly 0.19
-    #    if hexstring == "#FFFF00":
-    #        return 0.388 #formerly 0.31
-    #    if hexstring == "#00FFFF":
-    #        return 0.5 #formerly 0.43
-    #    if hexstring == "#0000FF":
-    #        return 0.612 #formerly 0.56
-    #    if hexstring == "#90EE90":
-    #        return 0.722 #formerly 0.68
-    #    if hexstring == "#014421":
-    #        return 0.833 #formerly 0.81
-    #    if hexstring == "#FFC0CB":
-#            return 1.0 #formerly 0.94
-#
-#    def ConvertHexToFractionNoBlack(self,hexstring):
-#        if hexstring == "#FF0000":
-#            return 0 #formerly 0.06
-#        if hexstring == "#964B00":
-#            return 0.188 #formerly 0.19
-#        if hexstring == "#FFFF00":
-#            return 0.314 #formerly 0.31
-#        if hexstring == "#00FFFF":
-#            return 0.439 #formerly 0.43
-#        if hexstring == "#0000FF":
-#            return 0.536 #formerly 0.56
-#        if hexstring == "#90EE90":
-#            return 0.686 #formerly 0.68
-#        if hexstring == "#014421":
-#            return 0.812 #formerly 0.81
-#        if hexstring == "#FFC0CB":
-#            return 1.0 #formerly 0.94
     
     def VisualizeOPCR(self,hexcolormap,facelength):
-        #opcrcolorscalars = zeros([facelength,1],float)
-        #opcrcolorlut = zeros([255,4])
         strdictb = {'#000000': 0.0, '#FF0000': 0.167, '#964B00': 0.278, '#FFFF00': 0.388, '#00FFFF': 0.5, '#0000FF': 0.612, '#90EE90': 0.722, '#014421': 0.833, '#FFC0CB': 1.0}
         strdict =  {'#FF0000': 0.0, '#964B00': 0.188, '#FFFF00': 0.314, '#00FFFF': 0.439, '#0000FF': 0.536, '#90EE90': 0.686, '#014421': 0.812, '#FFC0CB': 1.0}
         
         if "#000000" in hexcolormap:
             opcrcolorscalars = array([strdictb[key] for key in hexcolormap])
             
-            
-            
-            #for i in range(facelength):
-            #    opcrcolorscalars[i] = self.ConvertHexToFractionBlack(hexcolormap[i])
             colors = [(0,0,0,255),(255,0,0,255),(150,75,0,255),(255,255,0,255),(0,255,255,255),(0,0,255,255),(144,238,144,255),(1,68,33,255),(255,192,203,255)]
             arclen = [28,29,28,28,29,28,28,29,28]
             
             opcrcolorlut = [colors[i] for i in range(9) for j in range(arclen[i])]
-            #k = 0
-            #for i in range(9):
-            #    for j in range(arclen[i]):
-            #        opcrcolorlut[k] = colors[i]
-            #        k += 1
+
         else:
             opcrcolorscalars = array([strdict[key] for key in hexcolormap])
-            #for i in range(facelength):
-            #    opcrcolorscalars[i] = self.ConvertHexToFractionNoBlack(hexcolormap[i])
+
             colors = [(255,0,0,255),(150,75,0,255),(255,255,0,255),(0,255,255,255),(0,0,255,255),(144,238,144,255),(1,68,33,255),(255,192,203,255)]
             arclen = [32,32,32,32,31,32,32,32]
             opcrcolorlut = [colors[i] for i in range(8) for j in range(arclen[i])]
-            #k = 0
-            #for i in range(8):
-            #    for j in range(arclen[i]):
-            #        opcrcolorlut[k] = colors[i]
-            #        k += 1
         
         cell_data = self.plot.mlab_source.dataset.cell_data
         cell_data.scalars = opcrcolorscalars
@@ -146,8 +87,6 @@ class MayaviView(HasTraits):
         
         return 0         
         
-
-
 class OutLog:
     def __init__(self, edit, out=None, color=None):
         """(edit, out=None, color=None) -> can write stdout, stderr to a
@@ -326,9 +265,6 @@ class MainWidget(QtGui.QWidget):
             rfiresult = RFI.calcrfi(self.mesh)
             print "RFI calculated."
             dtaresult[1:3] = str(round(rfiresult[0],3)), str(round(rfiresult[2],3)), str(round(rfiresult[3],3))
-            #dtaresult[1] = str(round(rfiresult[0],3))
-            #dtaresult[2] = str(round(rfiresult[2],3))
-            #dtaresult[3] = str(round(rfiresult[3],3))
             print "RFI (surface area / outline area) = " + dtaresult[1]
             print "Surface area = " + dtaresult[2]
             print "Outline area = " + dtaresult[3]
@@ -339,9 +275,6 @@ class MainWidget(QtGui.QWidget):
             print "OPCR Calculated!"
             dtaresult[4] = str(round(opcrresult[0],3))
             dtaresult[5:7] = [0,1,2] # Unused but could be expanded to pass more information about OPCR
-            #dtaresult[5] = opcrresult[1][0]
-            #dtaresult[6] = opcrresult[1][1]
-            #dtaresult[7] = opcrresult[1][2]
             dtaresult[8] = opcrresult[2]
             print "OPCR = " + dtaresult[4]
             
@@ -377,11 +310,6 @@ class MainWidget(QtGui.QWidget):
       
         resultsfile = open(os.path.join(self.dirpath,'morphoresults.txt'),'w')
         resultsfile.write("Filename\tMesh Face Number\tDNE\tRFI\tSurface Area\tOutline Area\tOPCR\n")
-        #resultsfile2 = open(os.path.join(self.dirpath,'opcrpatchlengtharray.txt'),'w')
-        #resultsfile2.write("Filename\tMin Patch Size\tMax Patch Size\tPatch Length\t")
-        #for i in range(0,1000):
-        #    resultsfile2.write(str(i)+"\t")
-        #resultsfile2.write("\n")
            
         for filename in os.listdir(self.dirpath):
             if filename[-3:] == "ply":
@@ -390,43 +318,10 @@ class MainWidget(QtGui.QWidget):
                 self.meshfacenumber = len(self.mesh[2])
                 fileresult = self.ProcessSurface()
                 resultsfile.write(filename+"\t"+ str(self.meshfacenumber) + "\t" + fileresult[0]+"\t"+fileresult[1]+"\t"+fileresult[2]+"\t"+fileresult[3]+"\t"+fileresult[4]+"\n")
-                #resultsfile2.write(filename+"\t"+str(fileresult[6])+"\t"+str(fileresult[7])+"\t\t")
-                #for item in fileresult[5]:
-                #    resultsfile2.write(str(item[1])+"\t")
-                #resultsfile2.write("\n")
                 print "\n--------------------\n"
             else:
                 print filename + "does not have a .ply extension, skipping to next file."
         resultsfile.close()
-        #`resultsfile2.close()
-                
-                
-                
-#        fileresult = calcrfi(dirpath+'/'+filename)
-#        resultsfile.write(filename+"\t"+str(fileresult[0])+"\t"+str(fileresult[1])+"\t"+str(fileresult[2])+"\t"+str(fileresult[3])+"\n")
-#        print "\n"+"----------------------------------------"+"\n"
-#    else:
-#        print filename + " does not have a ply extension, skipping to next file\n"
-#resultsfile.close()
-              
-#    def DNEDialog(self):
-#        print "Calculating DNE..."
-#        dneresult = DNE.calcdne(self.mesh)
-#        self.dnelabel.setText(str(round(dneresult,3)))
-#        print "DNE Calculated!"
-#        
-#    def RFIDialog(self):
-#        print "Calculating RFI..."
-#        rfiresult = RFI.calcrfi(self.mesh)
-#        self.rfilabel.setText(str(round(rfiresult[0],3)))
-#        print "RFI Calculated!"
-#        
-#        
-#    def OPCRDialog(self):
-#        print "Calculating OPCR..."
-#        opcrresult = OPC.calcopcr(self.mesh)
-#        self.opcrlabel.setText(str(round(opcrresult,3)))
-#        print "OPCR Calculated!"
         
     def DNEOptionsPopUp(self):
         child = DNEOptionsWindow(self)
@@ -500,9 +395,7 @@ class OPCROptionsWindow(QtGui.QDialog):
 
 if __name__ == "__main__":        
     
-    #app = QtGui.QApplication(sys.argv) #new
     window = MainWidget()
     window.show()
-    #app.exec_()
     QtGui.qApp.exec_()
     
