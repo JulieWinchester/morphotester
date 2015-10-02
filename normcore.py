@@ -46,8 +46,6 @@ def computenormal(varray, faceindex, fvarray, vfarray):
             print "nan vnormal 4 entry found"
             print "corresponding vnormal entry:"
             print norm
-            #print "corresponding d2 entry:"
-            #print vd[i]
     
     # enforce that normals are outward
     mvertex = mean(varray,1)    

@@ -23,10 +23,6 @@ def trianglearea(verts): # Given a triple set of XYZ coordinate points for trian
     
     return 0.5*sqrt(square(det(a))+square(det(b))+square(det(c)))
 
-
-     
-
- 
 def surfarea(mesharray):    
     return sum(trianglearea(face) for face in mesharray[1])
 
