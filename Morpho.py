@@ -165,7 +165,7 @@ class MainWidget(QtGui.QWidget):
         self.dneiteration = QtGui.QLineEdit("3")
         self.dnestepsizelabel = QtGui.QLabel("Step size")
         self.dnestepsize = QtGui.QLineEdit("0.1")
-        self.dnedooutlierremovalcheck = QtGui.QCheckBox("1% Outlier Removal")
+        self.dnedooutlierremovalcheck = QtGui.QCheckBox("0.1% Outlier Removal")
         self.dneconditioncontrolcheck = QtGui.QCheckBox("Condition number checking")
         self.dneconditioncontrolcheck.toggle()
         
