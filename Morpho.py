@@ -1,7 +1,10 @@
 '''
 Created on Jun 17, 2012
 
-@author: JMW
+This module runs the MorphoTester application. It contains the application GUI
+and calls subsequent modules plython, DNE, RFI, and OPCR. 
+
+@author: Julia M. Winchester
 '''
 
 import os

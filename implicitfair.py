@@ -1,7 +1,9 @@
 '''
 Created on Oct 10, 2012
 
-@author: JMW
+Contains functions for executing an implicit fairing smooth on a 3D mesh.
+
+@author: Julia M. Winchester
 '''
 
 import DNE
