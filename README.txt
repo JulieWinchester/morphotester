@@ -11,46 +11,47 @@ MorphoTester is a scientific computing application for quantifying
 topographic shape from three-dimensional triangulated meshes
 representing anatomical shape data. Shape is described via three
 metrics which characterize distinct aspects of form: curvature
-(Dirichlet Normal Energy: Bunn et al., 2011; Winchester, 2015); relief
-(Relief Index: Ungar and M'Kirera, 2003; Boyer, 2008); and complexity
-(Orientation Patch Count Rotated: Evans et al., 2007; Winchester,
-2015). Details on relevant methods can be found in the listed
-publications. To run MorphoTester, execute Morpho.py as a script via
-the Python interpreter. This application provides a flexible engine
-for viewing 3D triangulated meshes and calculating topographic metrics
-from individual files or directory batches.
+(Dirichlet Normal Energy: Bunn et al., 2011; Winchester, in
+preparation); relief (Relief Index: Ungar and M'Kirera, 2003; Boyer,
+2008); and complexity (Orientation Patch Count Rotated: Evans et al.,
+2007; Winchester, in preparation). Details on relevant methods can be
+found in the listed publications. To run MorphoTester, execute
+Morpho.py as a script via the Python interpreter. This application
+provides a flexible engine for viewing 3D triangulated meshes and
+calculating topographic metrics from individual files or directory
+batches.
 
 ==================
 File Type and Size
 ==================
 
-MorphoTester accepts .ply Stanford PLY format surface mesh  files.
-Triangulated surface mesh files (that is, surfaces  comprised of
+MorphoTester accepts .ply Stanford PLY format surface mesh files.
+Triangulated surface mesh files (that is, surfaces comprised of
 multiple interconnected triangular polygons in three-dimensional
-space) can be generally described by the  number of triangular
-polygons comprising each mesh.  MorphoTester may be slow to load
-surface meshes consisting  of >500,000 faces or more depending on
-computer speed, and  DNE implicit fair mesh smoothing will be very
-slow at  >20,000 triangles. Previously published work using this
-software has analyzed surface meshes simplified to 10,000  faces with
-another application. Examples of applications  capable of this include
-Amira, Aviso, or the freeware  application Meshlab. Future versions of
-MorphoTester may  include mesh simplification built in.
+space) can be generally described by the number of triangular
+polygons comprising each mesh. MorphoTester may be slow to load
+surface meshes consisting of >500,000 faces or more depending on
+computer speed, and DNE implicit fair mesh smoothing will be very
+slow at >20,000 triangles. Previously published work using this
+software has analyzed surface meshes simplified to 10,000 faces with
+another application. Examples of applications capable of this include
+Amira, Aviso, or the freeware application Meshlab. Future versions of
+MorphoTester may include mesh simplification built in.
 
 =======================
 Processing Single Files
 =======================
 
-	1. Load single file by selecting the Open File button,  navigating
-	to desired file, and selecting Open. The  surface can be inspected
+	1. Load single file by selecting the Open File button, navigating
+	to desired file, and selecting Open. The surface can be inspected
 	using the 3D viewer on the  right.
 
-	2. Choose which topographic metrics are to be measured.  Set
-	parameters and optional procedures for DNE and OPCR  calculation
-	using the nearby Options button (See “DNE  Options” and “OPCR
+	2. Choose which topographic metrics are to be measured. Set
+	parameters and optional procedures for DNE and OPCR calculation
+	using the nearby Options button (See “DNE Options” and “OPCR
 	Options” below for more detail).
 
-	3. Select Process File, and wait. Values will be output  shortly.
+	3. Select Process File, and wait. Values will be output shortly.
 
 ===============================
 Batch Processing Multiple Files
@@ -59,18 +60,18 @@ Batch Processing Multiple Files
 	1. All .ply meshes to be measured should be located in a single
 	directory.
 
-	2. Select ‘Open Directory’ and navigate to desired  directory for
+	2. Select ‘Open Directory’ and navigate to desired directory for
 	analysis. Select Open. No mesh will appear in the 3D viewer.
 
 	3. As described above, choose which topographic metrics are to be
-	measured, and use the Option menus to set  parameters.
+	measured, and use the Option menus to set parameters.
 
-	4. Select Process Directory, and wait. Values will be  output
+	4. Select Process Directory, and wait. Values will be output
 	shortly. If an error occurs, this process will  halt entirely.
 
 Batch processing produces a results file in the directory where
-analyzed files are located. Results are provided as a  tab-delineated
-table of topographic values and file names,  and may be opened in
+analyzed files are located. Results are provided as a tab-delineated
+table of topographic values and file names, and may be opened in
 Microsoft Excel or other applications.
 
 ===========
