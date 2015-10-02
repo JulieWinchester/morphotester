@@ -1,8 +1,9 @@
 '''
 Created on Jun 17, 2012
 
-This module runs the MorphoTester application. It contains the application GUI
-and calls subsequent modules plython, DNE, RFI, and OPCR. 
+This module activates MorphoTester, a scientific computing application for measuring
+topographic shape of 3D anatomical data. It should be run as a script from the 
+command line. It contains the application GUI and calls subsequent modules plython, DNE, RFI, and OPCR. 
 
 @author: Julia M. Winchester
 '''
