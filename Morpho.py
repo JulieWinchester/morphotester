@@ -12,6 +12,7 @@ import os
 os.environ['ETS_TOOLKIT'] = 'qt4'
 os.environ['QT_API'] = 'pyqt'
 
+import sys
 import sip
 sip.setapi('QString', 2)
 
@@ -81,7 +82,7 @@ class MayaviView(HasTraits):
                 
         self.plot3 = self.scene.mlab.pipeline.surface(self.plot2)
         
-        self.scene.mlab.show()
+        #self.scene.mlab.show()
                 
         self.plot3.module_manager.scalar_lut_manager.lut.table = opcrcolorlut
         self.scene.mlab.draw()
@@ -394,9 +395,11 @@ class OPCROptionsWindow(QtGui.QDialog):
     def OKClose(self):
         self.close()              
 
-if __name__ == "__main__":        
-    
+def main():
     window = MainWidget()
     window.show()
-    QtGui.qApp.exec_()
+    sys.exit(QtGui.qApp.exec_())
+
+if __name__ == "__main__":
+    main()
     

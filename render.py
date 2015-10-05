@@ -17,9 +17,13 @@ import matplotlib
 matplotlib.use('AGG')
 
 import matplotlib.pyplot as plt
-import Image
 from StringIO import StringIO
 from numpy import array,amax,amin,square
+
+try:
+	import Image
+except ImportError:
+	from PIL import Image
 
 def countpixels(image, colorlist): # Returns the number of pixels in a list of RGB+transparency values that match the colors (RGB+transparency) given in colorlist
     return sum(list(image).count(color) for color in colorlist)
