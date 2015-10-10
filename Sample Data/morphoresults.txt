@@ -1,0 +1,5 @@
+Filename	Mesh Face Number	DNE	RFI	Surface Area	Outline Area	OPCR
+Cercocebus_atys_89373.ply	9900	209.485	1.853	79.725	43.027	68.0
+Cercopithecus_mitis_452554.ply	9936	225.432	1.883	59.269	31.476	71.75
+Colobus_guereza_1938-9-9-4.ply	9992	228.18	2.175	74.972	34.469	67.125
+Theropithecus_gelada_1963-58.ply	10040	249.806	2.178	213.537	98.056	76.5
