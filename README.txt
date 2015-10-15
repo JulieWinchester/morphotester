@@ -127,14 +127,19 @@ Changes from beta versions
 Most of the changes from beta versions of MorphoTester to release
 1.0.1 concern application stability and consistency of topographic
 results between Windows, OSX, and interpreted source code versions.
-Users familiar with older beta versions of this software may notice 
+Users familiar with older beta versions of this software may notice
 small changes in RFI or DNE (only when using the remove outlier
-feature) using latest release versions. For RFI, this is because
-the pixel counting algorithm MorphoTester uses to calculate two-
-dimensional area has been slightly modified to ensure consistency 
-between Windows and OSX. For DNE, differences should only occur
-when the remove outlier feature is turned on. Beta versions of this 
-application removed outliers from a sample of e(p) * area values where each value represented a polygon across a surface mesh. Release 1.0.1 now removes outliers from e(p) values per polygon across a surface mesh, ignoring polygon area. This allows for more effective control of erroneous energy densities per polygon. See Bunn et al. (2011) or Winchester (in review) for explanation of these terms. 
+feature) using latest release versions. For RFI, this is because the
+pixel counting algorithm MorphoTester uses to calculate two-
+dimensional area has been slightly modified to ensure consistency
+between Windows and OSX. For DNE, differences should only occur when
+the remove outlier feature is turned on. Beta versions of this
+application removed outliers from a sample of e(p) * area values where
+each value represented a polygon across a surface mesh. Release 1.0.1
+now removes outliers from e(p) values per polygon across a surface
+mesh, ignoring polygon area. This allows for more effective control of
+erroneous energy densities per polygon. See Bunn et al. (2011) or
+Winchester (in review) for explanation of these terms.
 
 ============
 Known Issues
