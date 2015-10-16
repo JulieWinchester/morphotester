@@ -139,7 +139,13 @@ each value represented a polygon across a surface mesh. Release 1.0.1
 now removes outliers from e(p) values per polygon across a surface
 mesh, ignoring polygon area. This allows for more effective control of
 erroneous energy densities per polygon. See Bunn et al. (2011) or
-Winchester (in review) for explanation of these terms.
+Winchester (in review) for explanation of these terms. Additionally,
+some older versions remove the top 1% of outlier DNE values instead of
+the 0.1% currently used as default. The latest MorphoTester source
+code allows the user to set the outlier percentage value as preferred.
+This change is not yet reflected in the compiled executable versions,
+but will be soon. Current latest executable versions remove 0.1%
+values as outliers.
 
 ============
 Known Issues
