@@ -110,7 +110,7 @@ def meshenergy(vertex, faceindex, vnormal, conditioncontrolischecked):
     energyfarea = array([energy(face,i, vertex, vnormal, conditioncontrolischecked) for i, face in enumerate(faceindex)])
     return [energyfarea[:,0], energyfarea[:,1]] 
     
-def totaldne(fBoundary, e, facearea, dooutlierremoval):
+def totaldne(fBoundary, e, facearea, dooutlierremoval, outvalue):
     # ignore energy of boundary faces
     e[fBoundary] = 0
     
@@ -119,7 +119,7 @@ def totaldne(fBoundary, e, facearea, dooutlierremoval):
     
     # optional removal of top 0.1% outliers
     if dooutlierremoval == 1:
-        ptoneperc = scoreatpercentile(e,99.9)
+        ptoneperc = scoreatpercentile(e,outvalue)
         for i, energy in enumerate(e):
             if energy > ptoneperc or isnan(energy):
                 print "Energy outlier removed. DNE value: " + str(energy) + " Face area: " + str(facearea[i])
@@ -127,7 +127,7 @@ def totaldne(fBoundary, e, facearea, dooutlierremoval):
      
     return sum(edensity)
     
-def calcdne(mesh, implicitfairischecked, conditioncontrolischecked, iterationnumber, stepsize, dooutlierremoval):
+def calcdne(mesh, implicitfairischecked, conditioncontrolischecked, iterationnumber, stepsize, dooutlierremoval, outlierval):
     varray = mesh[0]
     farray = mesh[2]
     nvert = len(varray)
@@ -150,7 +150,7 @@ def calcdne(mesh, implicitfairischecked, conditioncontrolischecked, iterationnum
     energyperface = meshenergy(varray, farray, normals[0], conditioncontrolischecked)
     
     # returns e(p) * face area summed over all polygons excepting outliers and boundary faces
-    return totaldne(fboundary, energyperface[0], energyperface[1], dooutlierremoval)
+    return totaldne(fboundary, energyperface[0], energyperface[1], dooutlierremoval, float(outlierval))
    
 
 

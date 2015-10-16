@@ -161,14 +161,16 @@ class MainWidget(QtGui.QWidget):
         self.openlabel = QtGui.QLabel("") # This should be moved
 
         # DNE options submenu
+        self.dneconditioncontrolcheck = QtGui.QCheckBox("Condition number checking")
+        self.dneconditioncontrolcheck.toggle()
+        self.dnedooutlierremovalcheck = QtGui.QCheckBox("Outlier Removal")
+        self.dneoutliervallabel = QtGui.QLabel("Outlier percent")
+        self.dneoutlierval = QtGui.QLineEdit("99.9")
         self.dneimplicitfaircheck = QtGui.QCheckBox("DNE Implicit Fairing Smooth")
         self.dneiterationlabel = QtGui.QLabel("Iterations")
         self.dneiteration = QtGui.QLineEdit("3")
         self.dnestepsizelabel = QtGui.QLabel("Step size")
         self.dnestepsize = QtGui.QLineEdit("0.1")
-        self.dnedooutlierremovalcheck = QtGui.QCheckBox("0.1% Outlier Removal")
-        self.dneconditioncontrolcheck = QtGui.QCheckBox("Condition number checking")
-        self.dneconditioncontrolcheck.toggle()
         
         # OPCR options submenu
         self.visualizeopcrcheck = QtGui.QCheckBox("Visualize Patches")
@@ -253,7 +255,7 @@ class MainWidget(QtGui.QWidget):
         dtaresult = [" "," "," "," "," "," "," "," "," "]
         if self.dnecheck.isChecked() == 1:
             print "Calculating DNE..."
-            dneresult = DNE.calcdne(self.mesh, self.dneimplicitfaircheck.isChecked(), self.dneconditioncontrolcheck.isChecked(), self.dneiteration.text(), self.dnestepsize.text(), self.dnedooutlierremovalcheck.isChecked())
+            dneresult = DNE.calcdne(self.mesh, self.dneimplicitfaircheck.isChecked(), self.dneconditioncontrolcheck.isChecked(), self.dneiteration.text(), self.dnestepsize.text(), self.dnedooutlierremovalcheck.isChecked(), self.dneoutlierval.text())
             if dneresult == "!":
                 print "DNE could not be calculated due to cholesky factorization error."
                 dtaresult[0] = "N/A (cholesky error)"
@@ -343,6 +345,12 @@ class DNEOptionsWindow(QtGui.QDialog):
         self.layout = QtGui.QVBoxLayout()
         self.layout.setSpacing(10)
         
+        self.hbox0 = QtGui.QHBoxLayout()
+        self.hbox0.addWidget(parent.dneoutliervallabel)
+        self.hbox0.addWidget(parent.dneoutlierval)
+        self.hbox0widget = QtGui.QWidget()
+        self.hbox0widget.setLayout(self.hbox0)
+        
         self.hbox = QtGui.QHBoxLayout()
         self.hbox.addWidget(parent.dneiterationlabel)
         self.hbox.addWidget(parent.dneiteration)
@@ -355,10 +363,12 @@ class DNEOptionsWindow(QtGui.QDialog):
         self.hbox2widget = QtGui.QWidget()
         self.hbox2widget.setLayout(self.hbox2)
         
-        self.layout.addWidget(parent.dnedooutlierremovalcheck)
         self.layout.addWidget(parent.dneconditioncontrolcheck)
-        self.layout.addWidget(parent.dneimplicitfaircheck)
         
+        self.layout.addWidget(parent.dnedooutlierremovalcheck)
+        self.layout.addWidget(self.hbox0widget)
+        
+        self.layout.addWidget(parent.dneimplicitfaircheck)
         self.layout.addWidget(self.hboxwidget)
         self.layout.addWidget(self.hbox2widget)
         self.layout.addWidget(self.OKbutton) 
