@@ -164,6 +164,7 @@ class MainWidget(QtGui.QWidget):
         self.dneconditioncontrolcheck = QtGui.QCheckBox("Condition number checking")
         self.dneconditioncontrolcheck.toggle()
         self.dnedooutlierremovalcheck = QtGui.QCheckBox("Outlier Removal")
+        self.dnedooutlierremovalcheck.toggle()
         self.dneoutliervallabel = QtGui.QLabel("Outlier percent")
         self.dneoutlierval = QtGui.QLineEdit("99.9")
         self.dneimplicitfaircheck = QtGui.QCheckBox("DNE Implicit Fairing Smooth")
@@ -237,6 +238,9 @@ class MainWidget(QtGui.QWidget):
         print "Opening file..."
         filepath = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '/')
         
+        if len(filepath) == 0:
+            return
+        
         filename = os.path.split(filepath)[1]
         
         self.openlabel.setText(filename)
@@ -248,6 +252,10 @@ class MainWidget(QtGui.QWidget):
     def OpenDirDialog(self):
         print "Opening directory..."
         self.dirpath = QtGui.QFileDialog.getExistingDirectory(self, 'Open Directory', '/')
+        
+        if len(self.dirpath) == 0:
+            return
+        
         self.openlabel.setText(".."+self.dirpath[-20:])
         self.mayaviview = MayaviView(0,1,0)
            
