@@ -373,7 +373,7 @@ class MainWidget(QtGui.QWidget):
                 self.mesh = plython.createarray(os.path.join(self.dirpath,filename))
                 self.meshfacenumber = len(self.mesh[2])
                 fileresult = self.ProcessSurface()
-                resultsfile.write(filename+"\t"+ str(self.meshfacenumber) + "\t" + fileresult[0]+"\t"+fileresult[1]+"\t"+fileresult[2]+"\t"+fileresult[3]+"\t"+fileresult[4]+"\n")
+                resultsfile.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (filename, self.meshfacenumber, fileresult[0], fileresult[1], fileresult[2], fileresult[3], fileresult[4]))
                 print "\n--------------------\n"
             else:
                 print filename + "does not have a .ply extension, skipping to next file."
