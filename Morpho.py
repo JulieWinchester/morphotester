@@ -16,7 +16,7 @@ import sys
 import sip
 sip.setapi('QString', 2)
 
-from numpy import array
+from numpy import array, amax, amin, log10, isinf, errstate
 from traits.api import HasTraits, Instance
 from traitsui.api import View, Item
 from mayavi.core.ui.api import MlabSceneModel
@@ -53,6 +53,28 @@ class MayaviView(HasTraits):
                     
             else: # Currently unused, but could allow for imposing alternate color schemes on mesh
                 self.plot = self.scene.mlab.triangular_mesh(x, y, z, triangles)
+    
+    def VisualizeDNE(self, edens):
+        with errstate(divide='ignore'):
+            edentree = [log10(float(ener)) for ener in edens]
+        lowbranch = sorted(set(edentree))[1]
+        sniptree = [lowbranch if isinf(x) else x for x in edentree]
+        
+        emax = amax(sniptree)
+        emin = amin(sniptree)
+        
+        relativedens = [(e - emin)/(emax - emin) for e in sniptree]
+        
+        cell_data = self.plot.mlab_source.dataset.cell_data
+        cell_data.scalars = relativedens
+        cell_data.scalars.name = 'Cell data'
+        cell_data.update()
+                
+        self.plot2 = self.scene.mlab.pipeline.set_active_attribute(self.plot, cell_scalars='Cell data')
+        self.plot3 = self.scene.mlab.pipeline.surface(self.plot2)                
+        self.plot3.module_manager.scalar_lut_manager.lut_mode = 'blue-red'
+        
+        self.scene.mlab.draw()
     
     def VisualizeOPCR(self,hexcolormap,facelength):
         strdictb = {'#000000': 0.0, '#FF0000': 0.167, '#964B00': 0.278, '#FFFF00': 0.388, '#00FFFF': 0.5, '#0000FF': 0.612, '#90EE90': 0.722, '#014421': 0.833, '#FFC0CB': 1.0}
@@ -161,21 +183,27 @@ class MainWidget(QtGui.QWidget):
         self.openlabel = QtGui.QLabel("") # This should be moved
 
         # DNE options submenu
+        self.dnevisualizecheck = QtGui.QCheckBox("Visualize DNE")
         self.dneconditioncontrolcheck = QtGui.QCheckBox("Condition number checking")
         self.dneconditioncontrolcheck.toggle()
-        self.dnedooutlierremovalcheck = QtGui.QCheckBox("Outlier Removal")
+        self.dnedooutlierremovalcheck = QtGui.QCheckBox("Outlier removal")
         self.dnedooutlierremovalcheck.toggle()
-        self.dneoutliervallabel = QtGui.QLabel("Outlier percent")
+        self.dneoutliervallabel = QtGui.QLabel("Outlier percentile")
         self.dneoutlierval = QtGui.QLineEdit("99.9")
-        self.dneimplicitfaircheck = QtGui.QCheckBox("DNE Implicit Fairing Smooth")
+        self.dneoutliertype1 = QtGui.QCheckBox("Energy*area outliers")
+        self.dneoutliertype1.toggle()
+        self.dneoutliertype1.stateChanged.connect(lambda troglodyte1: self.dneoutchanged(self.dneoutliertype1, self.dneoutliertype2))
+        self.dneoutliertype2 = QtGui.QCheckBox("Energy outliers")
+        self.dneoutliertype2.stateChanged.connect(lambda troglodyte2: self.dneoutchanged(self.dneoutliertype2, self.dneoutliertype1))
+        self.dneimplicitfaircheck = QtGui.QCheckBox("DNE implicit fairing smooth")
         self.dneiterationlabel = QtGui.QLabel("Iterations")
         self.dneiteration = QtGui.QLineEdit("3")
         self.dnestepsizelabel = QtGui.QLabel("Step size")
         self.dnestepsize = QtGui.QLineEdit("0.1")
         
         # OPCR options submenu
-        self.visualizeopcrcheck = QtGui.QCheckBox("Visualize Patches")
-        self.opcrlabel = QtGui.QLabel("Minimum Patch Count")
+        self.visualizeopcrcheck = QtGui.QCheckBox("Visualize OPCR")
+        self.opcrlabel = QtGui.QLabel("Minimum patch count")
         self.opcrminpatch = QtGui.QLineEdit("3")
         
         # Contents of mesh tools tab
@@ -234,6 +262,12 @@ class MainWidget(QtGui.QWidget):
         sys.stdout = OutLog(self.morpholog, sys.stdout)
         sys.stderr = OutLog(self.morpholog, sys.stderr, QtGui.QColor(255,0,0))
          
+    def dneoutchanged(self, changer, changee):
+        if changer.isChecked():
+            changee.setChecked(False)
+        else:
+            changee.setChecked(True) 
+            
     def OpenFileDialog(self):
         print "Opening file..."
         filepath = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '/')
@@ -260,17 +294,21 @@ class MainWidget(QtGui.QWidget):
         self.mayaviview = MayaviView(0,1,0)
            
     def ProcessSurface(self):
-        dtaresult = [" "," "," "," "," "," "," "," "," "]
+        dtaresult = [" "," "," "," "," "," "," "," "]
+        visinput1 = None
+        visinput2 = None 
+        
         if self.dnecheck.isChecked() == 1:
             print "Calculating DNE..."
-            dneresult = DNE.calcdne(self.mesh, self.dneimplicitfaircheck.isChecked(), self.dneconditioncontrolcheck.isChecked(), self.dneiteration.text(), self.dnestepsize.text(), self.dnedooutlierremovalcheck.isChecked(), self.dneoutlierval.text())
-            if dneresult == "!":
+            dneresult = DNE.calcdne(self.mesh, self.dneimplicitfaircheck.isChecked(), self.dneconditioncontrolcheck.isChecked(), self.dneiteration.text(), self.dnestepsize.text(), self.dnedooutlierremovalcheck.isChecked(), self.dneoutlierval.text(), self.dneoutliertype1.isChecked())
+            if dneresult[0] == "!":
                 print "DNE could not be calculated due to cholesky factorization error."
                 dtaresult[0] = "N/A (cholesky error)"
             else: 
                 print "DNE calculated."
-                dtaresult[0] = str(round(dneresult,3))
+                dtaresult[0] = str(round(dneresult[0],3))
                 print "DNE = " + dtaresult[0]
+                visinput1 = dneresult[1]
             
         if self.rficheck.isChecked() == 1:
             print "Calculating RFI..."
@@ -287,17 +325,17 @@ class MainWidget(QtGui.QWidget):
             print "OPCR Calculated!"
             dtaresult[4] = str(round(opcrresult[0],3))
             dtaresult[5:7] = [0,1,2] # Unused but could be expanded to pass more information about OPCR
-            dtaresult[8] = opcrresult[2]
+            visinput2 = opcrresult[2]
             print "OPCR = " + dtaresult[4]
             
-        return dtaresult
+        return dtaresult, visinput1, visinput2
         
     def CalcFile(self):     
         if self.dnecheck.isChecked() == 0 and self.rficheck.isChecked() == 0 and self.opcrcheck.isChecked() == 0:
             print "No topographic variables have been selected for analysis."
             return
         
-        dtaresult = self.ProcessSurface()
+        dtaresult, visinput1, visinput2 = self.ProcessSurface()
         
         print "\n--------------------\n"   
         print "RESULTS"
@@ -305,16 +343,22 @@ class MainWidget(QtGui.QWidget):
         print "Mesh face number: " + str(self.meshfacenumber)
         if self.dnecheck.isChecked() == 1:
             print "DNE: " + dtaresult[0]
+            if self.dnevisualizecheck.isChecked() == 1:
+                MayaviView.VisualizeDNE(self.mayaviview, visinput1)
         if self.rficheck.isChecked() == 1:
             print "RFI: " + dtaresult[1]
             print "Surface area: " + dtaresult[2]
             print "Outline area: " + dtaresult[3]           
         if self.opcrcheck.isChecked() == 1:
             print "OPCR: " + dtaresult[4]
+            if self.visualizeopcrcheck.isChecked() == 1:
+                MayaviView.VisualizeOPCR(self.mayaviview,visinput2,len(self.mesh[2]))
         print "\n--------------------"
-        if self.visualizeopcrcheck.isChecked() == 1:
-            MayaviView.VisualizeOPCR(self.mayaviview,dtaresult[8],len(self.mesh[2]))
+        if self.visualizeopcrcheck.isChecked() == 1 and self.dnevisualizecheck.isChecked() == 1 and self.dnecheck.isChecked() == 1 and self.opcrcheck.isChecked() == 1:
+            print "DNE and OPCR visualization both requested. Defaulting to OPCR visualization."
         
+         
+            
     def CalcDir(self):        
         if self.dnecheck.isChecked() == 0 and self.rficheck.isChecked() == 0 and self.opcrcheck.isChecked() == 0:
             print "No topographic variables have been selected for analysis."
@@ -359,6 +403,13 @@ class DNEOptionsWindow(QtGui.QDialog):
         self.hbox0widget = QtGui.QWidget()
         self.hbox0widget.setLayout(self.hbox0)
         
+        self.vbox = QtGui.QVBoxLayout()
+        self.vbox.addWidget(self.hbox0widget)
+        self.vbox.addWidget(parent.dneoutliertype1)
+        self.vbox.addWidget(parent.dneoutliertype2)
+        self.vboxwidget = QtGui.QWidget()
+        self.vboxwidget.setLayout(self.vbox)
+        
         self.hbox = QtGui.QHBoxLayout()
         self.hbox.addWidget(parent.dneiterationlabel)
         self.hbox.addWidget(parent.dneiteration)
@@ -371,10 +422,13 @@ class DNEOptionsWindow(QtGui.QDialog):
         self.hbox2widget = QtGui.QWidget()
         self.hbox2widget.setLayout(self.hbox2)
         
+        self.layout.addWidget(parent.dnevisualizecheck)
+        
         self.layout.addWidget(parent.dneconditioncontrolcheck)
         
         self.layout.addWidget(parent.dnedooutlierremovalcheck)
-        self.layout.addWidget(self.hbox0widget)
+        #self.layout.addWidget(self.hbox0widget)
+        self.layout.addWidget(self.vboxwidget)
         
         self.layout.addWidget(parent.dneimplicitfaircheck)
         self.layout.addWidget(self.hboxwidget)

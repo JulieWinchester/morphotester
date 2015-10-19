@@ -179,7 +179,14 @@ Absurdly high DNE values
 	been used on simplified 10,000-face polygonal models for this
 	purpose.
 
-Fullscreen Crashes (OS X only)
+Fullscreen crashes (OS X only)
 
 	Application is known to crash sometimes on exiting full-screen
 	visualization of 3D meshes. 
+
+DNE and OPCR visualization not working (Interpreted source code only)
+	
+	When using the newest versions of Mayavi and VTK6, visualization
+	of DNE and OPCR may not function. This is due to a bug in these
+	packages that will hopefully soon be resolved. In the meantime,
+	using older versions of these packages fixes the problem.
