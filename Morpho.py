@@ -356,9 +356,7 @@ class MainWidget(QtGui.QWidget):
         print "\n--------------------"
         if self.visualizeopcrcheck.isChecked() == 1 and self.dnevisualizecheck.isChecked() == 1 and self.dnecheck.isChecked() == 1 and self.opcrcheck.isChecked() == 1:
             print "DNE and OPCR visualization both requested. Defaulting to OPCR visualization."
-        
-         
-            
+                
     def CalcDir(self):        
         if self.dnecheck.isChecked() == 0 and self.rficheck.isChecked() == 0 and self.opcrcheck.isChecked() == 0:
             print "No topographic variables have been selected for analysis."
@@ -372,7 +370,7 @@ class MainWidget(QtGui.QWidget):
                 print "Processing " + filename + "..."
                 self.mesh = plython.createarray(os.path.join(self.dirpath,filename))
                 self.meshfacenumber = len(self.mesh[2])
-                fileresult = self.ProcessSurface()
+                fileresult = self.ProcessSurface()[0]
                 resultsfile.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (filename, self.meshfacenumber, fileresult[0], fileresult[1], fileresult[2], fileresult[3], fileresult[4]))
                 print "\n--------------------\n"
             else:
