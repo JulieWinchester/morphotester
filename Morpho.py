@@ -16,7 +16,7 @@ import sys
 import sip
 sip.setapi('QString', 2)
 
-from numpy import array, amax, amin, log10, isinf, errstate
+from numpy import array, amax, amin, rint, empty, nan, isfinite
 from traits.api import HasTraits, Instance
 from traitsui.api import View, Item
 from mayavi.core.ui.api import MlabSceneModel
@@ -27,7 +27,6 @@ import plython
 import DNE
 import RFI
 import OPC
-import sys
 
 class MayaviView(HasTraits):    
     scene = Instance(MlabSceneModel, ())
@@ -39,6 +38,10 @@ class MayaviView(HasTraits):
         HasTraits.__init__(self)
         # Create some data, and plot it using the embedded scene's engine
         
+        self.model = model
+        self.VisualizeMesh(model,clearscreen,colortriplet)
+        
+    def VisualizeMesh(self, model, clearscreen, colortriplet):
         if clearscreen == 1:
             self.plot = self.scene.mlab.clf()
         
@@ -48,34 +51,83 @@ class MayaviView(HasTraits):
             triangles = model[2]
             x, y, z = model[0][:,0], model[0][:,1], model[0][:,2],
                             
-            if colortriplet == 0:
-                self.plot = self.scene.mlab.triangular_mesh(x, y, z, triangles)
+            
+            self.plot = self.scene.mlab.triangular_mesh(x, y, z, triangles)
                     
-            else: # Currently unused, but could allow for imposing alternate color schemes on mesh
-                self.plot = self.scene.mlab.triangular_mesh(x, y, z, triangles)
+        return self.plot
+
+    def Interpolate(self, i, j, steps):
+        onestep = steps+1
+        ijrange = j.astype(float) - i.astype(float)
+        fillarray = rint(array([ijrange/(onestep)*s+i.astype(float) for s in range(onestep)[1:]]))
+        if (fillarray < 0).any():
+            fillarray = array([abs(x[::-1]) if (x < 0).any() else x for x in fillarray.T]).T
+        return fillarray
+        
+    def RelativeLut(self, lut, lmin, lmax): # Original 255-length LUT, proportion of min and max to stretch out
+        cutlut = lut[int(round(lmin*255)):int(round(lmax*255))] # Cuts original LUT into a section between min and max
+        newlut = empty([len(lut), 4]) # New null LUT of 255 length
+        newlut[:] = nan
+        for i, nugget in enumerate(cutlut): # Takes each entry in the subset of the original LUT...
+            newlut[int(float((len(lut)-1))/float((len(cutlut)-1))*float(i))] = nugget # ... and evenly spaces them within the new null LUT 
+        somelut = [i for i, x in enumerate(newlut) if isfinite(x).all()] # Indices of non-null entries in newlut
+        pairlut = zip(somelut[:-1], somelut[1:]) # Pairs of non-null newlut entries as so - 1,2; 2,3; 3,4; for filling in between
+        for pair in pairlut: # This is going to fill in the null entries between pairs with interpolated values
+            if pair[1]-pair[0]-1 < 1:
+                continue
+            newlut[pair[0]+1:pair[1]] = self.Interpolate(newlut[pair[0]], newlut[pair[1]], (pair[1]-pair[0]-1)) 
+        return newlut
     
-    def VisualizeDNE(self, edens):
-        with errstate(divide='ignore'):
-            edentree = [log10(float(ener)) for ener in edens]
-        lowbranch = sorted(set(edentree))[1]
-        sniptree = [lowbranch if isinf(x) else x for x in edentree]
+    def VisualizeScalars(self, scalars, customlut=None, scale='linear', colorbar=1):
+        self.visplot = self.VisualizeMesh(self.model,1,0)
         
-        emax = amax(sniptree)
-        emin = amin(sniptree)
-        
-        relativedens = [(e - emin)/(emax - emin) for e in sniptree]
-        
-        cell_data = self.plot.mlab_source.dataset.cell_data
-        cell_data.scalars = relativedens
+        cell_data = self.visplot.mlab_source.dataset.cell_data
+        cell_data.scalars = scalars
         cell_data.scalars.name = 'Cell data'
         cell_data.update()
-                
-        self.plot2 = self.scene.mlab.pipeline.set_active_attribute(self.plot, cell_scalars='Cell data')
-        self.plot3 = self.scene.mlab.pipeline.surface(self.plot2)                
-        self.plot3.module_manager.scalar_lut_manager.lut_mode = 'blue-red'
+        
+        self.visplot2 = self.scene.mlab.pipeline.set_active_attribute(self.visplot, cell_scalars='Cell data')
+        self.visplot3 = self.scene.mlab.pipeline.surface(self.visplot2)
+        
+        if customlut is None:
+            self.visplot3.module_manager.scalar_lut_manager.lut_mode = 'blue-red'
+        else:
+            self.visplot3.module_manager.scalar_lut_manager.lut.table = customlut
+            
+        self.visplot3.module_manager.scalar_lut_manager.lut.scale = scale    
+        
+        if colorbar:    
+            self.scene.mlab.colorbar(object=self.visplot3, orientation='vertical')
         
         self.scene.mlab.draw()
-    
+
+        return self.visplot3
+         
+    def VisualizeDNE(self, edens, isrelative, absmin, absmax):    
+        # For visualizing on log scale, transforms all 0 values (boundary and outlier faces) to lowest non-zero energy on polygon
+        apple = sorted(set(edens))[1]
+        eve = [apple if x == 0 else x for x in edens]
+        emin = amin(eve)
+        emax = amax(eve)
+        
+        if isrelative == 1:
+            self.plot3 = self.VisualizeScalars(eve, scale='log10')
+        else:    
+            eve = [absmin if x<absmin else x for x in eve]            
+            eve = [absmax if x>absmax else x for x in eve]   
+            
+            if absmin < emin:
+                lutmin = (emin - absmin)/(absmax - absmin)
+            else:
+                lutmin = 0.0
+            if absmax > emax:
+                lutmax = (emax-absmin)/(absmax - absmin)
+            else: lutmax = 1.0
+            
+            abslut = self.plot3.module_manager.scalar_lut_manager.lut.table.to_array()
+            rellut = self.RelativeLut(abslut, lutmin, lutmax) 
+            self.plot3 = self.VisualizeScalars(eve, customlut=rellut, scale='log10')
+            
     def VisualizeOPCR(self,hexcolormap,facelength):
         strdictb = {'#000000': 0.0, '#FF0000': 0.167, '#964B00': 0.278, '#FFFF00': 0.388, '#00FFFF': 0.5, '#0000FF': 0.612, '#90EE90': 0.722, '#014421': 0.833, '#FFC0CB': 1.0}
         strdict =  {'#FF0000': 0.0, '#964B00': 0.188, '#FFFF00': 0.314, '#00FFFF': 0.439, '#0000FF': 0.536, '#90EE90': 0.686, '#014421': 0.812, '#FFC0CB': 1.0}
@@ -95,21 +147,7 @@ class MayaviView(HasTraits):
             arclen = [32,32,32,32,31,32,32,32]
             opcrcolorlut = [colors[i] for i in range(8) for j in range(arclen[i])]
         
-        cell_data = self.plot.mlab_source.dataset.cell_data
-        cell_data.scalars = opcrcolorscalars
-        cell_data.scalars.name = 'Cell data'
-        cell_data.update()
-                
-        self.plot2 = self.scene.mlab.pipeline.set_active_attribute(self.plot, cell_scalars='Cell data')
-                
-        self.plot3 = self.scene.mlab.pipeline.surface(self.plot2)
-        
-        #self.scene.mlab.show()
-                
-        self.plot3.module_manager.scalar_lut_manager.lut.table = opcrcolorlut
-        self.scene.mlab.draw()
-        
-        return 0         
+        self.plot3 = self.VisualizeScalars(opcrcolorscalars, opcrcolorlut, scale='linear', colorbar=0)        
         
 class OutLog:
     def __init__(self, edit, out=None, color=None):
@@ -183,28 +221,48 @@ class MainWidget(QtGui.QWidget):
         self.openlabel = QtGui.QLabel("") # This should be moved
 
         # DNE options submenu
-        self.dnevisualizecheck = QtGui.QCheckBox("Visualize DNE")
+        #self.dnevisualizecheck = QtGui.QCheckBox("Visualize DNE")
+        self.dnerelvischeck = QtGui.QCheckBox("Relative scale")
+        self.dnerelvischeck.toggle()
+        self.dneabsvischeck = QtGui.QCheckBox("Absolute scale")
+        self.dnevisbuttons = QtGui.QButtonGroup()
+        self.dnevisbuttons.addButton(self.dnerelvischeck)
+        self.dnevisbuttons.addButton(self.dneabsvischeck)
+        self.dneabsmaxlabel = QtGui.QLabel("Max")
+        self.dneabsmaxval = QtGui.QLineEdit("1.0")
+        self.dneabsmaxval.setFixedWidth(40)
+        self.dneabsminlabel = QtGui.QLabel("Min")
+        self.dneabsminval = QtGui.QLineEdit("0.0")
+        self.dneabsminval.setFixedWidth(40)
+        
         self.dneconditioncontrolcheck = QtGui.QCheckBox("Condition number checking")
         self.dneconditioncontrolcheck.toggle()
-        self.dnedooutlierremovalcheck = QtGui.QCheckBox("Outlier removal")
-        self.dnedooutlierremovalcheck.toggle()
-        self.dneoutliervallabel = QtGui.QLabel("Outlier percentile")
+        
+        #self.dnedooutlierremovalcheck = QtGui.QCheckBox("Outlier removal")
+        #self.dnedooutlierremovalcheck.toggle()
+        self.dneoutliervallabel = QtGui.QLabel("Percentile")
         self.dneoutlierval = QtGui.QLineEdit("99.9")
-        self.dneoutliertype1 = QtGui.QCheckBox("Energy*area outliers")
+        self.dneoutlierval.setFixedWidth(40)
+        self.dneoutliertype1 = QtGui.QCheckBox("Energy x area")
         self.dneoutliertype1.toggle()
-        self.dneoutliertype1.stateChanged.connect(lambda troglodyte1: self.dneoutchanged(self.dneoutliertype1, self.dneoutliertype2))
-        self.dneoutliertype2 = QtGui.QCheckBox("Energy outliers")
-        self.dneoutliertype2.stateChanged.connect(lambda troglodyte2: self.dneoutchanged(self.dneoutliertype2, self.dneoutliertype1))
-        self.dneimplicitfaircheck = QtGui.QCheckBox("DNE implicit fairing smooth")
+        self.dneoutliertype2 = QtGui.QCheckBox("Energy")
+        self.dneoutlierbuttons = QtGui.QButtonGroup()
+        self.dneoutlierbuttons.addButton(self.dneoutliertype1)
+        self.dneoutlierbuttons.addButton(self.dneoutliertype2)
+        
+        #self.dneimplicitfaircheck = QtGui.QCheckBox("DNE implicit fairing smooth")
         self.dneiterationlabel = QtGui.QLabel("Iterations")
         self.dneiteration = QtGui.QLineEdit("3")
+        self.dneiteration.setFixedWidth(40)
         self.dnestepsizelabel = QtGui.QLabel("Step size")
         self.dnestepsize = QtGui.QLineEdit("0.1")
+        self.dnestepsize.setFixedWidth(40)
         
         # OPCR options submenu
         self.visualizeopcrcheck = QtGui.QCheckBox("Visualize OPCR")
         self.opcrlabel = QtGui.QLabel("Minimum patch count")
         self.opcrminpatch = QtGui.QLineEdit("3")
+        self.opcrminpatch.setFixedWidth(40)
         
         # Contents of mesh tools tab
         self.toolslabel = QtGui.QLabel("Mesh tools coming soon.")
@@ -227,8 +285,10 @@ class MainWidget(QtGui.QWidget):
         self.calcdirbutton.clicked.connect(self.CalcDir)
         
         # Options submenu buttons
-        self.dnebutton.clicked.connect(self.DNEOptionsPopUp)
-        self.opcrbutton.clicked.connect(self.OPCROptionsPopUp)
+        self.DNEOptionsWindow = DNEOptionsWindow(self)
+        self.dnebutton.clicked.connect(self.DNEOptionsWindow.show)
+        self.OPCROptionsWindow = OPCROptionsWindow(self)
+        self.opcrbutton.clicked.connect(self.OPCROptionsWindow.show)
         
         # UI grid layout
         grid = QtGui.QGridLayout()
@@ -261,13 +321,7 @@ class MainWidget(QtGui.QWidget):
         
         sys.stdout = OutLog(self.morpholog, sys.stdout)
         sys.stderr = OutLog(self.morpholog, sys.stderr, QtGui.QColor(255,0,0))
-         
-    def dneoutchanged(self, changer, changee):
-        if changer.isChecked():
-            changee.setChecked(False)
-        else:
-            changee.setChecked(True) 
-            
+                     
     def OpenFileDialog(self):
         print "Opening file..."
         filepath = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '/')
@@ -300,7 +354,7 @@ class MainWidget(QtGui.QWidget):
         
         if self.dnecheck.isChecked() == 1:
             print "Calculating DNE..."
-            dneresult = DNE.calcdne(self.mesh, self.dneimplicitfaircheck.isChecked(), self.dneconditioncontrolcheck.isChecked(), self.dneiteration.text(), self.dnestepsize.text(), self.dnedooutlierremovalcheck.isChecked(), self.dneoutlierval.text(), self.dneoutliertype1.isChecked())
+            dneresult = DNE.calcdne(self.mesh, self.DNEOptionsWindow.fairvgroup.isChecked(), self.dneconditioncontrolcheck.isChecked(), self.dneiteration.text(), self.dnestepsize.text(), self.DNEOptionsWindow.outliervgroup.isChecked(), self.dneoutlierval.text(), self.dneoutliertype1.isChecked())
             if dneresult[0] == "!":
                 print "DNE could not be calculated due to cholesky factorization error."
                 dtaresult[0] = "N/A (cholesky error)"
@@ -343,8 +397,8 @@ class MainWidget(QtGui.QWidget):
         print "Mesh face number: " + str(self.meshfacenumber)
         if self.dnecheck.isChecked() == 1:
             print "DNE: " + dtaresult[0]
-            if self.dnevisualizecheck.isChecked() == 1:
-                MayaviView.VisualizeDNE(self.mayaviview, visinput1)
+            if self.DNEOptionsWindow.visvgroup.isChecked() == 1:
+                MayaviView.VisualizeDNE(self.mayaviview, visinput1, self.dnerelvischeck.isChecked(),float(self.dneabsminval.text()), float(self.dneabsmaxval.text()))
         if self.rficheck.isChecked() == 1:
             print "RFI: " + dtaresult[1]
             print "Surface area: " + dtaresult[2]
@@ -354,7 +408,7 @@ class MainWidget(QtGui.QWidget):
             if self.visualizeopcrcheck.isChecked() == 1:
                 MayaviView.VisualizeOPCR(self.mayaviview,visinput2,len(self.mesh[2]))
         print "\n--------------------"
-        if self.visualizeopcrcheck.isChecked() == 1 and self.dnevisualizecheck.isChecked() == 1 and self.dnecheck.isChecked() == 1 and self.opcrcheck.isChecked() == 1:
+        if self.visualizeopcrcheck.isChecked() == 1 and self.DNEOptionsWindow.visvgroup.isChecked() == 1 and self.dnecheck.isChecked() == 1 and self.opcrcheck.isChecked() == 1:
             print "DNE and OPCR visualization both requested. Defaulting to OPCR visualization."
                 
     def CalcDir(self):        
@@ -377,14 +431,47 @@ class MainWidget(QtGui.QWidget):
                 print filename + "does not have a .ply extension, skipping to next file."
         resultsfile.close()
         
-    def DNEOptionsPopUp(self):
-        child = DNEOptionsWindow(self)
-        child.show()
+class HBoxWidget(QtGui.QWidget):
+    def __init__(self, widgetlist, indent=0, spacing=10):
+        super(HBoxWidget,self).__init__()
+        
+        self.initUI(widgetlist, indent, spacing)
+    
+    def initUI(self, widgetlist, indent, spacing):
+        self.hbox = QtGui.QHBoxLayout()
+        map(lambda x: self.hbox.addWidget(x), widgetlist)
+        self.hbox.setContentsMargins(indent,0,0,0)
+        self.hbox.setSpacing(spacing)
+        self.setLayout(self.hbox)
 
-    def OPCROptionsPopUp(self):
-        child = OPCROptionsWindow(self)
-        child.show()
-      
+class VBoxWidget(QtGui.QWidget):
+    def __init__(self, widgetlist):
+        super(VBoxWidget, self).__init__()
+        
+        self.initUI(widgetlist)
+        
+    def initUI(self, widgetlist):
+        self.vbox = QtGui.QVBoxLayout()
+        self.vbox.setContentsMargins(20,0,0,10)
+        self.vbox.setSpacing(8)
+        map(lambda x: self.vbox.addWidget(x), widgetlist)
+        self.setLayout(self.vbox)
+        
+class VGroupBoxWidget(QtGui.QGroupBox):
+    def __init__(self, title, widgetlist):
+        super(VGroupBoxWidget, self).__init__(title)
+        
+        self.initUI(widgetlist)
+        
+    def initUI(self, widgetlist):
+        self.vbox = QtGui.QVBoxLayout()
+        self.vbox.setContentsMargins(10,10,10,10)
+        self.vbox.setSpacing(10)
+        map(lambda x: self.vbox.addWidget(x), widgetlist)
+        self.setLayout(self.vbox)
+        self.setCheckable(1)
+        self.setStyleSheet('QGroupBox::title {bottom: 1px; background-color: transparent}')
+
 class DNEOptionsWindow(QtGui.QDialog):
     def __init__(self, parent=None):
         super(DNEOptionsWindow, self).__init__(parent)
@@ -393,46 +480,30 @@ class DNEOptionsWindow(QtGui.QDialog):
         self.OKbutton.clicked.connect(self.OKClose)
         
         self.layout = QtGui.QVBoxLayout()
-        self.layout.setSpacing(10)
+        self.layout.setSpacing(25)
         
-        self.hbox0 = QtGui.QHBoxLayout()
-        self.hbox0.addWidget(parent.dneoutliervallabel)
-        self.hbox0.addWidget(parent.dneoutlierval)
-        self.hbox0widget = QtGui.QWidget()
-        self.hbox0widget.setLayout(self.hbox0)
+        self.outlierhbox = HBoxWidget([parent.dneoutliervallabel, parent.dneoutlierval], spacing=6)       
+        self.outliervgroup = VGroupBoxWidget('Outlier removal', [parent.dneoutliertype1, parent.dneoutliertype2, self.outlierhbox])       
         
-        self.vbox = QtGui.QVBoxLayout()
-        self.vbox.addWidget(self.hbox0widget)
-        self.vbox.addWidget(parent.dneoutliertype1)
-        self.vbox.addWidget(parent.dneoutliertype2)
-        self.vboxwidget = QtGui.QWidget()
-        self.vboxwidget.setLayout(self.vbox)
+        self.fairithbox = HBoxWidget([parent.dneiterationlabel, parent.dneiteration])        
+        self.fairesthbox = HBoxWidget([parent.dnestepsizelabel, parent.dnestepsize]) 
+        self.fairvgroup = VGroupBoxWidget('Implicit fair smooth', [self.fairithbox, self.fairesthbox])
+        self.fairvgroup.setChecked(0)
         
-        self.hbox = QtGui.QHBoxLayout()
-        self.hbox.addWidget(parent.dneiterationlabel)
-        self.hbox.addWidget(parent.dneiteration)
-        self.hboxwidget = QtGui.QWidget()
-        self.hboxwidget.setLayout(self.hbox)
-        
-        self.hbox2 = QtGui.QHBoxLayout()
-        self.hbox2.addWidget(parent.dnestepsizelabel)
-        self.hbox2.addWidget(parent.dnestepsize)
-        self.hbox2widget = QtGui.QWidget()
-        self.hbox2widget.setLayout(self.hbox2)
-        
-        self.layout.addWidget(parent.dnevisualizecheck)
-        
+        self.vishbox = HBoxWidget([parent.dneabsminlabel, parent.dneabsminval, parent.dneabsmaxlabel, parent.dneabsmaxval])                 
+        self.visvgroup = VGroupBoxWidget('Visualize DNE', [parent.dnerelvischeck, parent.dneabsvischeck, self.vishbox])
+        self.visvgroup.setChecked(0)
+           
         self.layout.addWidget(parent.dneconditioncontrolcheck)
         
-        self.layout.addWidget(parent.dnedooutlierremovalcheck)
-        #self.layout.addWidget(self.hbox0widget)
-        self.layout.addWidget(self.vboxwidget)
+        self.layout.addWidget(self.outliervgroup)
+        self.layout.addWidget(self.fairvgroup)
+        self.layout.addWidget(self.visvgroup)
         
-        self.layout.addWidget(parent.dneimplicitfaircheck)
-        self.layout.addWidget(self.hboxwidget)
-        self.layout.addWidget(self.hbox2widget)
         self.layout.addWidget(self.OKbutton) 
         self.setLayout(self.layout)
+        
+        self.setSizePolicy(0, 0)
         
         self.setWindowTitle('DNE Options')
         
@@ -447,18 +518,16 @@ class OPCROptionsWindow(QtGui.QDialog):
         self.OKbutton.clicked.connect(self.OKClose)
         
         self.layout = QtGui.QVBoxLayout()
-        self.layout.setSpacing(10)
+        self.layout.setSpacing(20)
         
-        self.hbox = QtGui.QHBoxLayout()
-        self.hbox.addWidget(parent.opcrlabel)
-        self.hbox.addWidget(parent.opcrminpatch)
-        self.hboxwidget = QtGui.QWidget()
-        self.hboxwidget.setLayout(self.hbox)
-        
+        self.minpatchhbox = HBoxWidget([parent.opcrlabel, parent.opcrminpatch], spacing=15)
+                
+        self.layout.addWidget(self.minpatchhbox)
         self.layout.addWidget(parent.visualizeopcrcheck)
-        self.layout.addWidget(self.hboxwidget)
         self.layout.addWidget(self.OKbutton)
+        self.layout.setContentsMargins(20,20,20,20)
         self.setLayout(self.layout)
+        self.setSizePolicy(0, 0)
         
         self.setWindowTitle('OPCR Options') 
         
