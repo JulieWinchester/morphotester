@@ -39,7 +39,7 @@ class MayaviView(HasTraits):
         # Create some data, and plot it using the embedded scene's engine
         
         self.model = model
-        self.VisualizeMesh(model,clearscreen,colortriplet)
+        self.plot = self.VisualizeMesh(model,clearscreen,colortriplet)
         
     def VisualizeMesh(self, model, clearscreen, colortriplet):
         if clearscreen == 1:
@@ -124,7 +124,7 @@ class MayaviView(HasTraits):
                 lutmax = (emax-absmin)/(absmax - absmin)
             else: lutmax = 1.0
             
-            abslut = self.plot3.module_manager.scalar_lut_manager.lut.table.to_array()
+            abslut = self.plot.module_manager.scalar_lut_manager.lut.table.to_array()
             rellut = self.RelativeLut(abslut, lutmin, lutmax) 
             self.plot3 = self.VisualizeScalars(eve, customlut=rellut, scale='log10')
             
@@ -470,7 +470,7 @@ class VGroupBoxWidget(QtGui.QGroupBox):
         map(lambda x: self.vbox.addWidget(x), widgetlist)
         self.setLayout(self.vbox)
         self.setCheckable(1)
-        self.setStyleSheet('QGroupBox::title {bottom: 1px; background-color: transparent}')
+        self.setStyleSheet('QGroupBox::title {background-color: transparent}')
 
 class DNEOptionsWindow(QtGui.QDialog):
     def __init__(self, parent=None):
