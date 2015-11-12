@@ -133,28 +133,41 @@ single Z escalation values associated with XY coordinate pairs.
 Changes from beta versions
 ==========================
 
-Most of the changes from beta versions of MorphoTester to release
-1.0.1 concern application stability and consistency of topographic
-results between Windows, OSX, and interpreted source code versions.
-Users familiar with older beta versions of this software may notice
-small changes in RFI or DNE (only when using the remove outlier
-feature) using latest release versions. For RFI, this is because the
-pixel counting algorithm MorphoTester uses to calculate two-
-dimensional area has been slightly modified to ensure consistency
-between Windows and OSX. For DNE, differences should only occur when
-the remove outlier feature is turned on. Beta versions of this
-application removed outliers from a sample of e(p) * area values where
-each value represented a polygon across a surface mesh. Release 1.0.1
-now removes outliers from e(p) values per polygon across a surface
-mesh, ignoring polygon area. This allows for more effective control of
-erroneous energy densities per polygon. See Bunn et al. (2011) or
-Winchester (in review) for explanation of these terms. Additionally,
-some older versions remove the top 1% of outlier DNE values instead of
-the 0.1% currently used as default. The latest MorphoTester source
-code allows the user to set the outlier percentage value as preferred.
-This change is not yet reflected in the compiled executable versions,
-but will be soon. Current latest executable versions remove 0.1%
-values as outliers.
+Different RFI results between beta and current versions of 
+MorphoTester:
+
+Compared to latest release versions, some older betas of MorphoTester
+generate different values for "outline area." Outline area is the 2D
+area of a 3D surface as projected onto the XY plane (for dental
+analyses this is often the occlusal plane). MorphoTester calculates 2D
+projected area by producing a flat pixelated image of a surface,
+counting surface pixels, and then multiplying this count by an area to
+pixel ratio. The pixel counting method used here was updated midway
+through beta development to ensure compatibility between Windows and
+OSX environments. Any differences in outline area should be small,
+usually around 1%.
+
+Different DNE results with outlier removal between beta and current
+versions of MorphoTester:
+
+Unlike for RFI, the latest version of MorphoTester should be able to
+replicate all DNE results obtained from any beta version. The base DNE
+method is identical across all versions, but certain beta versions do
+use different protocols for removing outliers, polygons with extremely
+high energy values. Older beta versions removed polygons with energy
+values above the 99th percentile across a surface mesh (for a mesh of
+10,000 polygons, 100 outliers removed). Later beta versions changed
+this to only remove polygons with energy values above the 99.9th
+percentile (for a mesh of 10,000 polygons, 10 outliers removed). In
+both of these cases, outliers were removed from values calculated as
+energy density multiplied by polygon face area. One beta version,
+0.2.0d, removed outliers from values calculated as raw energy
+densities. The latest version of MorphoTester allows users to specify
+outlier percentile and whether outliers should be removed from energy
+densities * polygon areas or raw energy densities. Outlier removal at
+99.9% using energy densities * polygon areas is currently recommended,
+but trends of differences between specimens should be generally
+similar regardless of approach.
 
 ============
 Known Issues
