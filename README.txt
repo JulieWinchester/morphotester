@@ -209,6 +209,4 @@ Fullscreen crashes (OS X only)
 DNE and OPCR visualization not working (Interpreted source code only)
 	
 	When using the newest versions of Mayavi and VTK6, visualization
-	of DNE and OPCR may not function. This is due to a bug in these
-	packages that will hopefully soon be resolved. In the meantime,
-	using older versions of these packages fixes the problem.
+	of DNE and OPCR may not function. This will be resolved soon.
