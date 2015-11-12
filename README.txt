@@ -90,19 +90,28 @@ enabled, the iteration number and step size values are ignored.
 Overall DNE can be disproportionately affected by intersections
 between polygons with extreme angles such as often results from mesh
 noise or erroneous sharp features on surface casts pre-scanning (see
-‘Absurdly High DNE Values’ below). To address this, the ‘0.1% Outlier
-Removal’ option culls all individual DNE per polygonal face values
-above the 99.9th percentile. Similarly, the ‘Condition number
-checking’ option removes individual DNE per polygonal face values when
-the matrix comprising the face has a high condition number. High
-conditions numbers can indicate a matrix is singular (meaning further
-calculation of DNE cannot continue) and/or that the particular
-polygonal intersection is unreliable as a shape indicator due to
-extreme changes in DNE as a result from minor changes in polygon
-position. ‘0.1% Outlier Removal’ can be toggled on and off as desired. 
-Current publications of DNE do not use this feature, though future
-publications will. ‘Condition number checking’ should generally be
-left on, unless specific reasons indicate turning it off.
+‘Absurdly High DNE Values’ below). To address this, the ‘Outlier
+Removal’ option culls individual polygonal DNE values above a user-
+specified percentile amount. Outliers can be removed from the sample 
+of energy quantities per polygon (energy density * polygon area) or
+raw energy densities. Outlier removal at 99.9th percentile using
+energy density * polygon area is currently recommended. Similarly, the
+‘Condition number checking’ option removes individual polygon DNE 
+values when the matrix comprising the face has a high condition 
+number. High conditions numbers can indicate a matrix is singular 
+(meaning further calculation of DNE cannot continue) and/or that the 
+particular polygonal intersection is unreliable as a shape indicator 
+due to extreme changes in DNE from minor changes in polygon position. 
+‘Condition number checking’ should generally be left on, unless 
+specific reasons indicate turning it off.
+
+If Visualize DNE is checked, energy quantity values will be visualized
+across a mesh surface as a heatmap. Relative DNE visualization uses
+minimum and maximimum surface polygon energy quantities to bound the
+heatmap legend, and is useful to plotting DNE across an individual
+surface. Absolute DNE visualization allows the user to specify the
+bounds of the heatmap plotting and is useful for comparing DNE between
+two surfaces. 
 
 ============
 OPCR Options
