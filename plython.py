@@ -21,52 +21,104 @@ three arrays as a list in the order described.
 @author: Julia M. Winchester
 '''
 from numpy import array
-
-def stringafter(text,phrase): # Returns first discrete word or number after phrase in text, assuming words or numbers separated by whitespace characters
-    return text[text.find(phrase)+len(phrase):].split()[0] 
-
-def createarray(filepath): # Returns a list of numpy arrays of vertex XYZ triplets, XYZ triplets per vertex comprising each face, and vertex indices comprising each face
-    meshfile = open(filepath, 'r') 
-    meshstring = meshfile.read()
-    meshfile.close()
     
-    nvertex = int(stringafter(meshstring,'element vertex'))
-    nface = int(stringafter(meshstring,'element face'))
+class PlythonMesh(object):
+    """A class for creating and interacting with triangulated polygon meshes.
     
-    meshdata = meshstring[meshstring.find('end_header'):].splitlines()[1:]
-    vlist = meshdata[0:nvertex]
-    flist = meshdata[nvertex:(nvertex+nface)]
+    Creates a list of Numpy ndarray objects containing triangulated polygon 
+    mesh data if provided with a path to a .ply file. 
     
-    varray = array([vertices.split() for vertices in vlist], float)
-    farray = array([vertices.split()[1:4] for vertices in flist], int)
-    vfarray = array([[varray[vindex] for vindex in vertices] for vertices in farray], float) 
-    
-    return [varray, vfarray, farray]
-
-def savearray(vertex, faceindex, filename): # Saves an ASCII .ply mesh file given an iterable of XYZ coordinate data for vertices and an iterable of vertex indices for each face (see outputs of createarray() for examples)
-    arrayfile = open(filename,'w')
-    arrayfile.write("ply\nformat ascii 1.0\nelement vertex "+ str(len(vertex)) + "\n")
-    arrayfile.write("property float32 x\nproperty float32 y\nproperty float32 z\nelement face " + str(len(faceindex)) + "\nproperty list uint8 int32 vertex_indices\nend_header\n")
-    
-    for xyz in vertex:
-        arrayfile.write(str(xyz[0])+" "+str(xyz[1])+" "+str(xyz[2])+"\n")
-    
-    for vertexindices in faceindex:
-        arrayfile.write("3 " + str(int(vertexindices[0]))+" "+str(int(vertexindices[1]))+" "+str(int(vertexindices[2]))+"\n")
+    Args:
+        filepath (str): Path to a .ply polygon mesh file. 
         
-    arrayfile.close()
+    Attributes:
+        mesh (list): Triangulated polygon mesh data. Contains three ndarrays:
+            vertex XYZ points, polygons with component vertex indices, and 
+            polygons with component vertex XYZ points. 
+        vertices (ndarray): Vertex XYZ points for mesh.
+        faces (ndarray): Polygons with component vertex indices for mesh.
+        triverts (ndarray): Polygons with component vertex XYZ points for mesh.
+        nvert (int): Number of vertices in mesh. 
+        nface (int): Number of polygons in mesh.  
     
-    return
+    """
+    def __init__(self, filepath=""):
+        self.mesh = None
+        self.vertices = None
+        self.faces = None
+        self.triverts = None
+        self.nvert = 0
+        self.nface = 0
+        
+        if filepath is not "":
+            self.CreateArray(filepath)
+    
+    def CreateArray(self, filepath): 
+        """Creates triangulated polygon mesh data objects from .ply file.
+        
+        Args:
+            filepath (str): Path to a .ply polygon mesh file.
+        
+        """
+        meshfile = open(filepath, 'r') 
+        meshstring = meshfile.read()
+        meshfile.close()
+        
+        nvertex = int(self._StringAfter(meshstring,'element vertex'))
+        nface = int(self._StringAfter(meshstring,'element face'))
+        
+        meshdata = meshstring[meshstring.find('end_header'):].splitlines()[1:]
+        vlist = meshdata[0:nvertex]
+        flist = meshdata[nvertex:(nvertex+nface)]
+        
+        varray = array([vertices.split() for vertices in vlist], float)
+        farray = array([vertices.split()[1:4] for vertices in flist], int)
+        vfarray = array([[varray[vindex] for vindex in vertices] for vertices in farray], float) 
+        
+        self.mesh = [varray, vfarray, farray]
+        self.vertices = varray
+        self.faces = farray
+        self.triverts = vfarray
+        self.nvert = len(varray)
+        self.nface = len(farray) 
+
+    def SaveArray(self, filepath): 
+        """Saves mesh as an ASCII .ply format triangulated surface file.
+        
+        Args:
+            filepath (str): Path to a .ply polygon mesh file to be created.
+        
+        """
+        arrayfile = open(filepath,'w')
+        arrayfile.write("ply\nformat ascii 1.0\nelement vertex %s\n" % self.nvert)
+        arrayfile.write("property float32 x\nproperty float32 y\nproperty float32 z\nelement face %s\nproperty list uint8 int32 vertex_indices\nend_header\n" % self.nface)
+        
+        for xyz in self.Vertices():
+            arrayfile.write(str(xyz[0])+" "+str(xyz[1])+" "+str(xyz[2])+"\n")
+        
+        for vertexindices in self.Triangles():
+            arrayfile.write("3 " + str(int(vertexindices[0]))+" "+str(int(vertexindices[1]))+" "+str(int(vertexindices[2]))+"\n")
+            
+        arrayfile.close()
+        
+    def Vertices(self):
+        """Returns vertex XYZ data points."""
+        return self.mesh[0]
+    
+    def TriVert(self):
+        """Returns polygons with component vertex XYZ data points."""
+        return self.mesh[1]
+    
+    def Triangles(self):
+        """Returns polygons with component vertex indices."""
+        return self.mesh[2]
+    
+    def Mesh(self):
+        """Returns triangulated polygon mesh data."""
+        return self.mesh
+    
+    def _StringAfter(self,text,phrase): 
+        """Internal method for finding first discrete word or number (separated by spaces) after phrase in text."""
+        return text[text.find(phrase)+len(phrase):].split()[0]         
         
     
-    
-    
-    
-
-
-
-
-
-    
-
-

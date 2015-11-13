@@ -8,23 +8,33 @@ Functions for the creation and manipulation of normal vectors.
 
 from numpy import cross, array, sqrt, column_stack, spacing, zeros, isnan, mean, sum
 
-def normal(plane): # Returns a 1-dimensional array of XYZ points defining a vector normal to the given plane; expects a list of 3 vertices (consisting of XYZ points) comprising a triangle
+def normal(plane):
+    """Given triangle vertices, returns normal vector for triangle as XYZ coordinates."""
     a = plane[0]
+    #print "a"
+    #print a
     b = plane[1]
+    #print "b"
+    #print b
     c = plane[2]
+    #print "c"
+    #print c
     ab = [(b[0]-a[0]),(b[1]-a[1]),(b[2]-a[2])]
     ac = [(c[0]-a[0]),(c[1]-a[1]),(c[2]-a[2])]
     return cross(ab,ac)
 
-def normalmap(varray,farray): # Returns a 2-dimensional array [number-of-faces,3] of normal vectors across a map of triangles. Expects to be provided with an array of faces (in form [face-number,vertex-number,XYZ]). Translation between normal array and face array is: normal[x] = mesh[facenumber]
+def normalmap(varray,farray): 
+    """Given a list of vertices and polygons, returns array of polygon normal vectors."""
     return array([normal(varray[verts]) for verts in farray])
 
 def normalize(vects):
+    """Normalizes (sets magnitude to 1) given vectors."""
     d = sqrt((vects**2).sum(axis=1)) # Square roots of sums of squares of normal vectors, i.e. magnitudes of normal vectors
     d = [1 if m < spacing(1) else m for m in d]
     return vects/column_stack((d,d,d)) # each face has its normal vector XYZ divided by that vector's magnitude. this normalizes the vector, i.e. gives it a magnitude of 1.   
 
 def computenormal(varray, faceindex, fvarray, vfarray):
+    """Given a polygonal mesh, returns unit normals for polygons and unit normals of vertices (approximated as average of associated polygon normals)."""
     nvert = len(varray)
     
     fnormal = normalmap(varray,faceindex)
