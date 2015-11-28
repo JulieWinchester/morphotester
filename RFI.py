@@ -10,9 +10,10 @@ projected on XY plane) for a provided 3D mesh using the MeshRFI class.
 import matplotlib
 matplotlib.use('AGG')
 
+import warnings
 import matplotlib.pyplot as plt
 from StringIO import StringIO
-from numpy import sqrt, square, amin, amax, array
+from numpy import sqrt, square, amin, amax, array, array_equal
 from numpy.linalg import det
 
 try:
@@ -53,11 +54,13 @@ class MeshRFI(object):
         self.pixelratio = None
         self.imgbuffer = None
         
+        self._check_mesh_consistency()
+        
         self.calcrfi()
         
     def calcrfi(self):
         """Calls methods for calculating surface and projected areas, then derives relief index value."""
-        self.surfarea = round(sum(self.triangle_area(face) for face in self.Mesh.triverts),3)      
+        self.surfarea = round(sum(self._triangle_area(face) for face in self.Mesh.triverts),3)      
         self._get_projection_area()
         self.RFI = round(self.surfarea/self.projarea, 3)
     
@@ -75,7 +78,10 @@ class MeshRFI(object):
         xaxismax = amax(xarray) + 0.5
         yaxismin = amin(yarray) - 0.5
         yaxismax = amax(yarray) + 0.5
-        self.linelen = amax(yarray) - amin(yarray) + 1
+        self.linelen = amax(yarray) - amin(yarray) + 1.0
+        
+        if self.linelen == 1.0:
+            raise ValueError("Polygon mesh has a zero area projected in the XY plane.")
         
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -100,12 +106,15 @@ class MeshRFI(object):
     
     def _get_2d_area(self): # Receives image plot from StringIO object and returns absolute area covered by mesh as projected on XY plane   
         """Derives 2D surface area of polygonal mesh projected on XY plane given a 2D raster plot and area-unit reference line."""
+        if isinstance(self.imgbuffer, StringIO) is not True:
+            raise TypeError("Non-StringIO object provided for imgbuffer.")
+        
         self.imgbuffer.seek(0) # Rewind image buffer back to beginning to allow Image.open() to identify it
         img = Image.open(self.imgbuffer).getdata()  
-        self.imgbuffer.close()
+
         
-        self.redpixie = self.count_pixels(img, [(255,0,0,255),(255,127,127,255)])
-        self.bluepixie = len(list(img)) - self.count_pixels(img, [(255, 0, 0, 255), (255, 255, 255, 255), (255, 155, 155, 255), (255, 188, 188, 255), (255, 230, 230, 255), (255, 205, 205, 255)])    
+        self.redpixie = self._count_pixels(img, (255,0,0,255), (255,127,127,255))
+        self.bluepixie = len(list(img)) - self._count_pixels(img, (255, 0, 0, 255), (255, 255, 255, 255), (255, 155, 155, 255), (255, 188, 188, 255), (255, 230, 230, 255), (255, 205, 205, 255))    
             
         rope = float(self.linelen)
         redballoon = float(self.redpixie)   
@@ -113,17 +122,17 @@ class MeshRFI(object):
         
         self.projarea = round(float(self.bluepixie)*(square(rope)/square(redballoon)), 3)
 
-    def count_pixels(self, image, colorlist): # Returns the number of pixels in a list of RGB+transparency values that match the colors (RGB+transparency) given in colorlist
-        """Returns the number of pixels in an image that match listed colors.
+    def _count_pixels(self, image, *args): # Returns the number of pixels in a list of RGB+transparency values that match the colors (RGB+transparency) given in colorlist
+        """Returns the number of pixels in an image that match colors given as *args.
         
         Args:
             image (StringIO object): Image string buffer object from which pixels are counted.
-            colorlist (list): List of RGB+transparency value color data, pixels in image that
-                                match these colors will be counted.
+            *args: Series of lists or tuples of RGB+transparency value color data. Pixels in 
+                    image that match these colors will be counted.
         """
-        return sum(list(image).count(color) for color in colorlist)
+        return sum([list(image).count(color) for color in set(args)])
      
-    def triangle_area(self, verts):
+    def _triangle_area(self, verts):
         """Returns the area of a triangle defined by vertices.
         
         Args:
@@ -140,7 +149,11 @@ class MeshRFI(object):
         
         return 0.5*sqrt(square(det(a))+square(det(b))+square(det(c)))
     
-
+    def _check_mesh_consistency(self):
+        """Checks mesh vertex and face-vertex arrays to ensure identical vertices throughout."""
+        for i, trivert in enumerate(self.Mesh.triverts):
+            if (trivert != self.Mesh.vertices[self.Mesh.faces[i]]).any():
+                raise ValueError("Mesh vertex and face arrays do not contain identical vertices.")
 
 
 

@@ -11,7 +11,7 @@ further details on method.
 import implicitfair
 import normcore
 from copy import copy as pcopy
-from numpy import zeros, transpose, nonzero, sqrt, sum, trace, mat, array, dot, isnan, copy
+from numpy import zeros, transpose, nonzero, sqrt, sum, trace, mat, array, dot, isnan, copy, array_equal
 from numpy.linalg import cond
 from scipy.sparse import lil_matrix
 from scipy.stats import scoreatpercentile
@@ -115,9 +115,15 @@ class MeshDNE(object):
 
     def _energy(self, face, i):
         """Returns energy value and polygon area for a provided polygon."""
+       
         TV1 = self.Mesh.triverts[i]
         TV2 = array([self.vnormal[face[0]],self.vnormal[face[1]],self.vnormal[face[2]]])
         
+        if array_equal(TV1[0], TV1[1]) or array_equal(TV1[0], TV1[2]) or array_equal(TV1[1], TV1[2]):
+            print "Warning: Duplicate vertices in polygon %s." % i
+            print "Ignoring this polygon for energy calculation, but editing surface to remove duplicate vertices prior to DNE calculation is encouraged."
+            return [0,1]
+
         b1 = TV1[1] - TV1[0]
         b2 = TV1[2] - TV1[0]
         
