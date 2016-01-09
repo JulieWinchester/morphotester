@@ -26,11 +26,12 @@ def My_Angle(u,v):
     angle = acos(x)
     return angle
 
-def laplaciantension(vertex, faceindex):
+def laplaciantension(vertex, faceindex, vert_tri_dict):
     n = len(vertex)
     L = lil_matrix((n,n))
-    ring = DNE.vertexfacedict(faceindex, len(vertex))
-
+    #ring = DNE.vertexfacedict(faceindex, len(vertex))
+    ring = vert_tri_dict
+    
     for i in range(0,n): 
         for b in ring[i]:
             bf = faceindex[b]          
@@ -74,8 +75,8 @@ def laplaciantension(vertex, faceindex):
                 
     return L
 
-def smooth(vertex, faceindex, iternum, stepsize):
-    L = laplaciantension(vertex, faceindex)
+def smooth(vertex, faceindex, iternum, stepsize, vert_tri_dict):
+    L = laplaciantension(vertex, faceindex, vert_tri_dict)
     sparseidentity = identity(len(vertex))
 
     tochol = sparseidentity - (stepsize*L)

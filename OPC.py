@@ -152,10 +152,10 @@ class MeshOPCR(object):
     
     def _pair_faces(self, inputlist):
         """Given a list of numbers, returns all possible pairs of numbers without replication or identical-number pairs."""
-        return [(x,y) for x in inputlist for y in inputlist if x < y]
+        return [(x,y) for x in set(inputlist) for y in set(inputlist) if x < y]
     
     def _adjacent_face_pairs(self, pairdict):
-        """Given a list of polygon face pairs, returns the subset of polygon pairs where pair members share an edge.""" 
+        """Given a list of polygon face pairs sharing vertices, returns the subset of polygon pairs where pair members share an edge.""" 
         touching_list = list() 
         seen = set() 
         seentwice = set()

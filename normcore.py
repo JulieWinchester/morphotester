@@ -10,17 +10,14 @@ from numpy import cross, array, sqrt, column_stack, spacing, zeros, isnan, mean,
 
 def normal(plane):
     """Given triangle vertices, returns normal vector for triangle as XYZ coordinates."""
+    
     a = plane[0]
-    #print "a"
-    #print a
     b = plane[1]
-    #print "b"
-    #print b
     c = plane[2]
-    #print "c"
-    #print c
+
     ab = [(b[0]-a[0]),(b[1]-a[1]),(b[2]-a[2])]
     ac = [(c[0]-a[0]),(c[1]-a[1]),(c[2]-a[2])]
+    
     return cross(ab,ac)
 
 def normalmap(varray,farray): 

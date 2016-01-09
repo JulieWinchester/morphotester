@@ -12,7 +12,7 @@ import implicitfair
 import normcore
 from copy import copy as pcopy
 from numpy import zeros, transpose, nonzero, sqrt, sum, trace, mat, array, dot, isnan, copy, array_equal
-from numpy.linalg import cond
+from numpy.linalg import cond, LinAlgError
 from scipy.sparse import lil_matrix
 from scipy.stats import scoreatpercentile
 from collections import defaultdict
@@ -86,15 +86,16 @@ class MeshDNE(object):
         
     def calcdne(self):
         """Method for calculating surface Dirichlet normal energy and populating instance variables."""
+        # creation of dictionary of vertex keys and face values     
+        self._get_vert_tri_dict()
+        
         # optional implicit smooth of mesh
         if self.dosmooth == 1:
             self.Mesh = pcopy(self.Mesh)
-            self.Mesh.vertices = implicitfair.smooth(self.Mesh.vertices, self.Mesh.faces, int(self.smoothit), float(self.smoothstep))
+            self.Mesh.vertices = implicitfair.smooth(self.Mesh.vertices, self.Mesh.faces, int(self.smoothit), float(self.smoothstep), self.vert_tri_dict)
             if self.Mesh.vertices == "!":
                 return "!"    
         
-        # creation of dictionary of vertex keys and face values     
-        self._get_vert_tri_dict()
         # creation of array of vertices per edge
         self._get_edge_verts()
         # list of boundary faces
@@ -141,7 +142,18 @@ class MeshDNE(object):
     
         gm = mat(g)  
         
-        e = trace((gm.I*fstarh))
+        try:
+            gminv = gm.I
+        except LinAlgError as err:
+            condition = cond(g)
+            if condition > 10**5:
+                err.args += ('G matrix for polygon %s is singular and an inverse cannot be determined. Condition number is %s, turning condition number checking on will cause this polygon to be ignored for energy calculation.' % (i, cond(g)),)
+                raise
+            else:
+                err.args += ('G matrix for polygon %s is singular and an inverse cannot be determined. Condition number is %s, turning condition number checking on will not cause this polygon to be ignored for energy calculation. Further mesh processing is advised.' % (i, cond(g)),)
+                raise
+        
+        e = trace((gminv*fstarh))
         facearea = 0.5 * sqrt(g[0,0]*g[1,1]-g[0,1]*g[1,0])
                         
         if isnan(e):
@@ -213,10 +225,14 @@ class MeshDNE(object):
     
     def _get_boundary_faces(self):
         """Generates list of polygons comprising surface edges."""        
+        self.boundary_faces = list()
+        
         for verts in self.edgeverts:
             f1, f2 = [self.vert_tri_dict[vert] for vert in verts]
             cf = [x for x in f2 for y in f1 if x == y]
             
             if len(cf) == 1:
                 self.boundary_faces.append(cf[0])
+            
+        self.boundary_faces = list(set(self.boundary_faces))
     

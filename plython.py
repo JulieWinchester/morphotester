@@ -21,6 +21,7 @@ three arrays as a list in the order described.
 @author: Julia M. Winchester
 '''
 from numpy import array
+from struct import unpack
     
 class PlythonMesh(object):
     """A class for creating and interacting with triangulated polygon meshes.
@@ -64,24 +65,95 @@ class PlythonMesh(object):
         meshstring = meshfile.read()
         meshfile.close()
         
-        nvertex = int(self._StringAfter(meshstring,'element vertex'))
-        nface = int(self._StringAfter(meshstring,'element face'))
         
+        datamode = self._StringAfter(meshstring, 'format')
+        self.nvert = int(self._StringAfter(meshstring,'element vertex'))
+        self.nface = int(self._StringAfter(meshstring,'element face'))
+        
+        if datamode == "ascii" or datamode == "ASCII":
+            self.vertices, self.faces, self.triverts = self._read_ascii(meshstring)
+        else:
+            self.vertices, self.faces, self.triverts = self._read_bin(meshstring, datamode)
+        
+        self.mesh = [self.vertices, self.triverts, self.faces]
+        
+        self.check_mesh_consistency()
+    
+    def _read_ascii(self, meshstring):
+        """Reads ASCII mesh data."""
         meshdata = meshstring[meshstring.find('end_header'):].splitlines()[1:]
-        vlist = meshdata[0:nvertex]
-        flist = meshdata[nvertex:(nvertex+nface)]
+        
+        if len(meshdata) < self.nvert:
+            raise EOFError('Unexpected end of .PLY file in list of vertices.')
+        
+        vlist = meshdata[0:self.nvert]
+        
+        if len(meshdata[self.nvert:]) < self.nface:
+            raise EOFError('Unexpected end of .PLY in list of polygon vertex indices.')
+        
+        flist = meshdata[self.nvert:(self.nvert+self.nface)]
+        
+        if flist[0][0] != '3':
+            raise ValueError('Non-triangular polygons found within .PLY file.')
         
         varray = array([vertices.split() for vertices in vlist], float)
         farray = array([vertices.split()[1:4] for vertices in flist], int)
-        vfarray = array([[varray[vindex] for vindex in vertices] for vertices in farray], float) 
+        vfarray = array([[varray[vindex] for vindex in vertices] for vertices in farray], float)
         
-        self.mesh = [varray, vfarray, farray]
-        self.vertices = varray
-        self.faces = farray
-        self.triverts = vfarray
-        self.nvert = len(varray)
-        self.nface = len(farray) 
-
+        return varray, farray, vfarray 
+    
+    def _read_bin(self, meshstring, mode):
+        """Reads binary mesh data."""
+        if mode == "binary_little_endian":
+            byteorder = "<"
+        elif mode == "binary_big_endian":
+            byteorder = ">"
+        
+        meshdata = meshstring[meshstring.find('end_header')+11:]
+        
+        # Expected number of bytes for vertex data, assumes 3 XYZ coordinate float values
+        vertbytes = self.nvert*3*4
+        # Expected number of bytes for face data, assumes unsigned char (= 3) and 3 integer vertex index values 
+        facebytes = self.nface*(3*4+1)
+        
+        if len(meshdata) < vertbytes:
+            raise EOFError('Unexpected end of .PLY file in list of vertices.')
+        
+        vertdata = meshdata[0:vertbytes]
+        
+        if len(meshdata[vertbytes:]) < facebytes:
+            raise EOFError('Unexpected end of .PLY in list of polygon vertex indices.')
+        
+        facedata = meshdata[vertbytes:vertbytes+facebytes]
+        
+        if unpack(byteorder+'B', facedata[0])[0] != 3:
+            raise ValueError('Non-triangular polygons found within .PLY file.')
+        
+        vert_xyz_split = [vertdata[i:i+4] for i in range(0, vertbytes, 4)]
+        vert_xyz_points = map(lambda x: unpack(byteorder+'f', x)[0], vert_xyz_split)
+        vert_array = array(vert_xyz_points)
+        vert_array = vert_array.reshape([self.nvert,3])
+        
+        face_split = [facedata[i:i+13] for i in range(0, facebytes, 13)]
+        face_index_split = [[face[i:i+4] for i in range(1, len(face), 4)] for face in face_split]
+        face_index_value = [[unpack(byteorder+'i', index)[0] for index in face] for face in face_index_split]
+        face_array = array(face_index_value)
+        face_array = face_array.reshape([self.nface,3])
+        
+        vert_face_array = array([[vert_array[vertex] for vertex in face] for face in face_array], float)
+        
+        return vert_array, face_array, vert_face_array
+    
+    def check_mesh_consistency(self):
+        """Checks mesh data produced by CreateArray for consistency, raises exceptions if mesh is inconsistent or nonexistent."""
+        if self.vertices == None or self.faces == None or self.triverts == None:
+            raise ValueError('Mesh data is missing.')
+        if len(self.vertices) != self.nvert or len(self.faces) != self.nface or len(self.triverts) != self.nface:
+            raise ValueError('Unexpected vertex, face, or face-vertex index length, mesh is inconsistent.')
+        for i, trivert in enumerate(self.triverts):
+            if (trivert != self.vertices[self.faces[i]]).any():
+                raise ValueError("Mesh vertex and face arrays do not contain identical vertices, mesh is inconsistent.")
+        
     def SaveArray(self, filepath): 
         """Saves mesh as an ASCII .ply format triangulated surface file.
         
@@ -89,6 +161,8 @@ class PlythonMesh(object):
             filepath (str): Path to a .ply polygon mesh file to be created.
         
         """
+        self.check_mesh_consistency()
+        
         arrayfile = open(filepath,'w')
         arrayfile.write("ply\nformat ascii 1.0\nelement vertex %s\n" % self.nvert)
         arrayfile.write("property float32 x\nproperty float32 y\nproperty float32 z\nelement face %s\nproperty list uint8 int32 vertex_indices\nend_header\n" % self.nface)
@@ -103,15 +177,15 @@ class PlythonMesh(object):
         
     def Vertices(self):
         """Returns vertex XYZ data points."""
-        return self.mesh[0]
+        return self.vertices
     
     def TriVert(self):
         """Returns polygons with component vertex XYZ data points."""
-        return self.mesh[1]
+        return self.triverts
     
     def Triangles(self):
         """Returns polygons with component vertex indices."""
-        return self.mesh[2]
+        return self.faces
     
     def Mesh(self):
         """Returns triangulated polygon mesh data."""
@@ -119,6 +193,10 @@ class PlythonMesh(object):
     
     def _StringAfter(self,text,phrase): 
         """Internal method for finding first discrete word or number (separated by spaces) after phrase in text."""
-        return text[text.find(phrase)+len(phrase):].split()[0]         
-        
+        try:
+            return text[text.index(phrase)+len(phrase):].split()[0]         
+        except (ValueError, IndexError) as err:
+            err.args += ('Phrase %s is not in text %s, is longer than text, or is last element in text.' % (phrase, text),)
+            raise
+
     
