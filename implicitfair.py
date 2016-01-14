@@ -6,7 +6,6 @@ Contains functions for executing an implicit fairing smooth on a 3D mesh.
 @author: Julia M. Winchester
 '''
 
-import DNE
 from math import acos, tan
 from numpy import sqrt, spacing, diag, mat 
 from numpy.linalg import cholesky, solve, LinAlgError
@@ -29,7 +28,6 @@ def My_Angle(u,v):
 def laplaciantension(vertex, faceindex, vert_tri_dict):
     n = len(vertex)
     L = lil_matrix((n,n))
-    #ring = DNE.vertexfacedict(faceindex, len(vertex))
     ring = vert_tri_dict
     
     for i in range(0,n): 

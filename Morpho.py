@@ -16,118 +16,14 @@ import sys
 import sip
 sip.setapi('QString', 2)
 
+import topomesh
+
 from numpy import array, amax, amin, rint, empty, nan, isfinite
 from traits.api import HasTraits, Instance
 from traitsui.api import View, Item
 from mayavi.core.ui.api import MlabSceneModel
 from tvtk.pyface.scene_editor import SceneEditor
 from PyQt4 import QtGui
-
-import plython
-import DNE
-import RFI
-import OPC
-
-class TopoMesh(plython.PlythonMesh):
-    """A class for creating and interacting with triangulated polygon meshes and topographic variables.
-    
-    Class inherits from plython.PlythonMesh. Creates a list of Numpy ndarray objects containing 
-    triangulated polygon mesh data if provided with a path to a .ply file. Topographic variables
-    are instanced as None and take the data types specified below when generated using the 
-    ProcessSurface method. 
-    
-    Args:
-        filepath (str): Path to a .ply polygon mesh file
-        
-    Attributes:
-        mesh (list): Triangulated polygon mesh data. Contains three ndarrays:
-            vertex XYZ points, polygons with component vertex indices, and 
-            polygons with component vertex XYZ points. 
-        nvert (int): Number of vertices in mesh. 
-        nface (int): Number of polygons in mesh.
-        vertices (ndarray): Vertex XYZ points for mesh.
-        faces (ndarray): Polygons with component vertex indices for mesh.
-        triverts (ndarray): Polygons with component vertex XYZ points for mesh.
-        DNE (float): Total Dirichlet normal energy of mesh. 
-        DNEscalars (ndarray): Scalars for visualizing DNE.
-        conditionfaces (list): List of polygon face indices with high matrix condition numbers.
-        boundaryfaces (list): List of polygon face indices forming mesh edges.
-        outlierfaces (list): List of polygon face indices removed as outliers, with DNE values and face areas.
-        RFI (float): Relief index of mesh (surface area/projected area).
-        surfarea (float): 3D surface area of mesh. 
-        projarea (float): 2D surface area of mesh projected on XY plane. 
-        OPCR (float): Orientation patch count rotated for mesh. 
-        OPClist (list): Orientation patch counts at 8 rotations for mesh.
-        OPCscalars: Scalars for visualizing OPC. 
-    
-    """
-    def __init__(self, filepath):
-        super(TopoMesh,self).__init__(filepath)
-        
-        self.DNE = None
-        self.DNEscalars = None
-        self.conditionfaces = None
-        self.boundaryfaces = None
-        self.outlierfaces = None
-        
-        self.RFI = None
-        self.surfarea = None
-        self.projarea = None
-        self.linelen = None
-        self.bluepixie = None
-        self.redpixie = None
-        self.pixelratio = None
-        
-        self.OPCR = None
-        self.OPClist = None
-        self.OPCscalars = None
-        
-    def GenerateDNE(self, dosmooth, smoothit, smoothstep, docondition, dooutlier, outlierperc, outliertype):
-        """Calculates Dirichlet normal energy (surface bending) from mesh data.
-        
-        For details on args, see DNE.MeshDNE class. 
-        
-        Args:
-            doSmooth (bool): If true, do implicit fair smooth. 
-            SmoothIt (int): Iterations of smoothing
-            SmoothStep (float): Smoothing step size. 
-            doCondition (bool): If true, do polygon condition number control. 
-            doOutlier (bool): If true, do outlier removal. 
-            OutlierPerc (float): Outlier percentile. 
-            OutlierType (bool): If true, outliers as energy*area. If false, outliers as energy. 
-            
-        """
-        surfcurv = DNE.MeshDNE(self, dosmooth, smoothit, smoothstep, docondition, dooutlier, outlierperc, outliertype)
-        self.DNE = surfcurv.DNE
-        self.DNEscalars = surfcurv.equantity
-        self.conditionfaces = surfcurv.high_condition_faces
-        self.boundaryfaces = surfcurv.boundary_faces
-        self.outlierfaces = surfcurv.outlier_faces
-          
-    def GenerateRFI(self):
-        """Calculates relief index (surface relief) from mesh data."""
-        surfrelf = RFI.MeshRFI(self)
-        self.RFI = surfrelf.RFI
-        self.surfarea = surfrelf.surfarea
-        self.projarea = surfrelf.projarea
-        self.linelen = surfrelf.linelen
-        self.bluepixie = surfrelf.bluepixie
-        self.redpixie = surfrelf.redpixie
-        self.pixelratio = surfrelf.pixelratio
-        
-    def GenerateOPCR(self, minpatch):
-        """Calculates orientation patch count rotated (surface complexity) from mesh data.
-        
-        For details on args see OPC.MeshOPCR class. 
-        
-        Args:
-            minpatch (int): Minimum size for counting patches.
-            
-        """
-        surfcomp = OPC.MeshOPCR(self, minpatch)
-        self.OPCR = surfcomp.OPCR
-        self.OPClist = surfcomp.opc_list
-        self.OPCscalars = surfcomp.colormap_list[0]  
         
 class MainWidget(QtGui.QWidget):
     """ Class for primary UI window."""
@@ -249,13 +145,13 @@ class MainWidget(QtGui.QWidget):
         """Method for loading .ply surface mesh files."""
         filepath = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '/')
         
-        if len(filepath) == 0:
+        if not len(filepath):
             return
         
         print "Opening file..."
         filename = os.path.split(filepath)[1]
         self.openlabel.setText(filename)
-        self.TopoMesh = TopoMesh(filepath)
+        self.TopoMesh = topomesh.TopoMesh(filepath)
         self.mayaviview = MayaviView(self.TopoMesh.mesh,1)
         print "File open!"
         
@@ -263,7 +159,7 @@ class MainWidget(QtGui.QWidget):
         """Method for selecting a directory for batch processing of .ply surface mesh files."""
         self.dirpath = QtGui.QFileDialog.getExistingDirectory(self, 'Open Directory', '/')
         
-        if len(self.dirpath) == 0:
+        if not len(self.dirpath):
             return
         
         print "Opening directory..."
@@ -273,24 +169,24 @@ class MainWidget(QtGui.QWidget):
     def ProcessSurface(self):
         """Method for processing surface mesh data to acquire topographic variables."""
         
-        if self.dnecheck.isChecked() == 1:
+        if self.dnecheck.isChecked():
             self.TopoMesh.GenerateDNE(self.DNEOptionsWindow.fairvgroup.isChecked(), 
                                       self.DNEOptionsWindow.dneiteration.text(), self.DNEOptionsWindow.dnestepsize.text(), 
                                       self.DNEOptionsWindow.dneconditioncontrolcheck.isChecked(), 
                                       self.DNEOptionsWindow.outliervgroup.isChecked(), self.DNEOptionsWindow.dneoutlierval.text(), 
                                       self.DNEOptionsWindow.dneoutliertype1.isChecked())
                         
-        if self.rficheck.isChecked() == 1:
+        if self.rficheck.isChecked():
             self.TopoMesh.GenerateRFI()
             
-        if self.opcrcheck.isChecked() == 1:
+        if self.opcrcheck.isChecked():
             self.TopoMesh.GenerateOPCR(self.OPCROptionsWindow.opcrminpatch.text())
         
     def CalcFile(self):
         """Method for processing a single surface mesh object. 
         
         Connected to Process File Button."""     
-        if self.dnecheck.isChecked() == 0 and self.rficheck.isChecked() == 0 and self.opcrcheck.isChecked() == 0:
+        if not self.dnecheck.isChecked() and not self.rficheck.isChecked() and not self.opcrcheck.isChecked():
             print "No topographic variables have been selected for analysis."
             return
         
@@ -341,7 +237,7 @@ class MainWidget(QtGui.QWidget):
         """Method for batch processing a directory of .ply surface mesh files.
         
         Connected to Process Directory button."""       
-        if self.dnecheck.isChecked() == 0 and self.rficheck.isChecked() == 0 and self.opcrcheck.isChecked() == 0:
+        if not self.dnecheck.isChecked() and not self.rficheck.isChecked() and not self.opcrcheck.isChecked():
             print "No topographic variables have been selected for analysis."
             return
       
@@ -351,7 +247,7 @@ class MainWidget(QtGui.QWidget):
         for filename in os.listdir(self.dirpath):
             if filename[-3:] == "ply":
                 print "Processing " + filename + "..."
-                self.TopoMesh = TopoMesh(os.path.join(self.dirpath,filename))
+                self.TopoMesh = topomesh.TopoMesh(os.path.join(self.dirpath,filename))
                 self.ProcessSurface()
                 resultsfile.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (filename, self.TopoMesh.nface, self.TopoMesh.DNE, 
                                                                     self.TopoMesh.RFI, self.TopoMesh.surfarea, 
@@ -390,10 +286,10 @@ class MayaviView(HasTraits):
         
     def VisualizeMesh(self, model, clearscreen):
         """Method for creating a Mayavi figure plot of visualized 3D polygonal mesh."""
-        if clearscreen == 1:
+        if clearscreen:
             self.plot = self.scene.mlab.clf()
         
-        if model == 0:
+        if not model:
             self.plot = self.scene.mlab.points3d(0,0,0,opacity=0.0)
         else:
             triangles = model[2]
@@ -456,11 +352,11 @@ class MayaviView(HasTraits):
         """Visualizes energy density across polygonal mesh."""    
         # For visualizing on log scale, transforms all 0 values (boundary and outlier faces) to lowest non-zero energy on polygon
         apple = sorted(set(edens))[1]
-        eve = [apple if x == 0 else x for x in edens]
+        eve = [apple if not x else x for x in edens]
         emin = amin(eve)
         emax = amax(eve)
         
-        if isrelative == 1:
+        if isrelative:
             self.plot3 = self.VisualizeScalars(eve, scale='log10')
         else:    
             eve = [absmin if x<absmin else x for x in eve]            

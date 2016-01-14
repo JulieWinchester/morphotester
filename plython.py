@@ -146,7 +146,7 @@ class PlythonMesh(object):
     
     def check_mesh_consistency(self):
         """Checks mesh data produced by CreateArray for consistency, raises exceptions if mesh is inconsistent or nonexistent."""
-        if self.vertices == None or self.faces == None or self.triverts == None:
+        if self.vertices is None or self.faces is None or self.triverts is None:
             raise ValueError('Mesh data is missing.')
         if len(self.vertices) != self.nvert or len(self.faces) != self.nface or len(self.triverts) != self.nface:
             raise ValueError('Unexpected vertex, face, or face-vertex index length, mesh is inconsistent.')
