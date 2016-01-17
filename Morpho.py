@@ -18,6 +18,7 @@ sip.setapi('QString', 2)
 
 import topomesh
 
+from math import log
 from numpy import array, amax, amin, rint, empty, nan, isfinite
 from traits.api import HasTraits, Instance
 from traitsui.api import View, Item
@@ -362,12 +363,15 @@ class MayaviView(HasTraits):
             eve = [absmin if x<absmin else x for x in eve]            
             eve = [absmax if x>absmax else x for x in eve]   
             
+            if absmin == 0.0:
+                absmin = 1e-08
+            
             if absmin < emin:
-                lutmin = (emin - absmin)/(absmax - absmin)
+                lutmin = (log(emin) - log(absmin))/(log(absmax) - log(absmin))
             else:
                 lutmin = 0.0
             if absmax > emax:
-                lutmax = (emax-absmin)/(absmax - absmin)
+                lutmax = (log(emax)-log(absmin))/(log(absmax) - log(absmin))
             else: lutmax = 1.0
             
             abslut = self.plot.module_manager.scalar_lut_manager.lut.table.to_array()
