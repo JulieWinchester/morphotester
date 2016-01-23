@@ -1,0 +1,5 @@
+Results in expected_morphoresults.txt obtained using the following options: 
+
+DNE: Condition number checking ON, Outlier removal ON, Outlier type "Energy", Outlier percentage 99.9, Implicit fair smooth OFF
+
+OPCR: Minimum patch size 5
