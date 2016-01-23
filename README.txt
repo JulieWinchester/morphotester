@@ -1,7 +1,7 @@
 =====================================================================
 |                                                                   |
 |                             MorphoTester                          |
-|                               Ver. 1.0                            |
+|                               Ver. 1.1.1                          |
 |                                                                   |
 |                       Author: Julia Winchester                    |
 |                   (julia.winchester@stonybrook.edu)               |
@@ -173,9 +173,22 @@ similar regardless of approach.
 Known Issues
 ============
 
+Windows 8 64-bit version
+
+	Due to slight instability in dependent packages in 64-bit Windows
+	8, this version of MorphoTester experiences two minor issues 
+	relating to mesh visualization. When visualizing meshes, a
+	VTK/OpenGL error message will appear. Mesh visualization will
+	occur normally despite this, and the error message can be closed
+	without any consequences. When visualizing surface DNE, scale bars
+	will often be placed partially off-screen. This can be largely
+	fixed by running MorphoTester as an administrator. If scale bar
+	misplacement occurs while running as administrator, reloading the
+	surface should fix this. All other features work appropriately.
+
 CHOL errors
 
-	This is the primary bug likely to be encountered with
+	This is the primary issue likely to be encountered with
 	MorphoTester. It will only be encountered when measuring DNE with
 	implicit fairing smoothing. This error relates to the matrices
 	that comprise the surface data, and in practice it has mostly been
@@ -200,13 +213,3 @@ Absurdly high DNE values
 	previously published DNE results, 100 iterations of smoothing has
 	been used on simplified 10,000-face polygonal models for this
 	purpose.
-
-Fullscreen crashes (OS X only)
-
-	Application is known to crash sometimes on exiting full-screen
-	visualization of 3D meshes. 
-
-DNE and OPCR visualization not working (Interpreted source code only)
-	
-	When using the newest versions of Mayavi and VTK6, visualization
-	of DNE and OPCR may not function. This will be resolved soon.
