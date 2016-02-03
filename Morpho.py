@@ -31,7 +31,9 @@ class MainWidget(QtGui.QWidget):
     
     def __init__(self):
         super(MainWidget, self).__init__()
-
+        
+        self.open_file_dialog_path ='/'
+        self.open_directory_dialog_path = '/'
         self.initUI()
         
     def initUI(self):
@@ -144,7 +146,8 @@ class MainWidget(QtGui.QWidget):
                      
     def OpenFileDialog(self):
         """Method for loading .ply surface mesh files."""
-        filepath = QtGui.QFileDialog.getOpenFileName(self, 'Open File', '/')
+        filepath = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.open_file_dialog_path)
+        self.open_file_dialog_path = os.path.dirname(filepath)
         
         if not len(filepath):
             return
@@ -158,7 +161,8 @@ class MainWidget(QtGui.QWidget):
         
     def OpenDirDialog(self):
         """Method for selecting a directory for batch processing of .ply surface mesh files."""
-        self.dirpath = QtGui.QFileDialog.getExistingDirectory(self, 'Open Directory', '/')
+        self.dirpath = QtGui.QFileDialog.getExistingDirectory(self, 'Open Directory', self.open_directory_dialog_path)
+        self.open_directory_dialog_path = self.dirpath
         
         if not len(self.dirpath):
             return

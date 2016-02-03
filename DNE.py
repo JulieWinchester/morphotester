@@ -104,6 +104,7 @@ class MeshDNE(object):
         # arrays of normalized face normals and vertex normals approximated from adjacent faces
         self.vnormal, self.fnormal = normcore.computenormal(self.Mesh.vertices, self.Mesh.faces, self.Mesh.triverts, self.vert_tri_dict)
         # array of e(p) and face area for polygons across mesh
+        
         self._energize_surface()
         
         self._sumdne()
@@ -117,7 +118,7 @@ class MeshDNE(object):
     def _energy(self, face, i):
         """Returns energy value and polygon area for a provided polygon."""
        
-        TV1 = self.Mesh.triverts[i]
+        TV1 = array([self.Mesh.vertices[face[0]], self.Mesh.vertices[face[1]], self.Mesh.vertices[face[2]]])
         TV2 = array([self.vnormal[face[0]],self.vnormal[face[1]],self.vnormal[face[2]]])
         
         if array_equal(TV1[0], TV1[1]) or array_equal(TV1[0], TV1[2]) or array_equal(TV1[1], TV1[2]):
