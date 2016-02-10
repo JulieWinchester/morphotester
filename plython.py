@@ -34,8 +34,8 @@ class PlythonMesh(object):
         
     Attributes:
         mesh (list): Triangulated polygon mesh data. Contains three ndarrays:
-            vertex XYZ points, polygons with component vertex indices, and 
-            polygons with component vertex XYZ points. 
+            vertex XYZ points, polygons with component vertex XYZ points, 
+            and polygons with component vertex indices. 
         vertices (ndarray): Vertex XYZ points for mesh.
         faces (ndarray): Polygons with component vertex indices for mesh.
         triverts (ndarray): Polygons with component vertex XYZ points for mesh.

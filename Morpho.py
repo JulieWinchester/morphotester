@@ -85,7 +85,19 @@ class MainWidget(QtGui.QWidget):
         self.calcdirbutton = QtGui.QPushButton("Process Directory")
            
         # Contents of mesh tools tab
-        self.toolslabel = QtGui.QLabel("Mesh tools coming soon.")
+        self.implicit_fair_check = QtGui.QCheckBox("Implicit fair smooth")
+        
+        self.implicit_fair_iterations_label = QtGui.QLabel("Iterations")
+        self.implicit_fair_iterations = QtGui.QLineEdit("3")
+        
+        self.implicit_fair_step_size_label = QtGui.QLabel("Step size")
+        self.implicit_fair_step_size = QtGui.QLineEdit("0.1")
+        
+        self.implicit_fair_label = QtGui.QLabel("This will output implicit faired meshes.")
+        self.implicit_fair_label2 = QtGui.QLabel("For single files, this will update current mesh in view.") 
+        
+        self.implicit_fair_file = QtGui.QPushButton("Process File")
+        self.implicit_fair_dir = QtGui.QPushButton("Process Directory")
         
         # Output log
         self.morpholog = QtGui.QTextEdit()
@@ -103,6 +115,9 @@ class MainWidget(QtGui.QWidget):
 
         self.calcfilebutton.clicked.connect(self.CalcFile)
         self.calcdirbutton.clicked.connect(self.CalcDir)
+        
+        self.implicit_fair_file.clicked.connect(self.fair_file)
+        self.implicit_fair_dir.clicked.connect(self.fair_directory)
         
         # Options submenu buttons
         self.DNEOptionsWindow = DNEOptionsWindow(self)
@@ -131,7 +146,16 @@ class MainWidget(QtGui.QWidget):
         self.tab1layout.addWidget(self.calcfilebutton, 10,0)
         self.tab1layout.addWidget(self.calcdirbutton, 10,1)
         
-        self.tab2layout.addWidget(self.toolslabel, 0, 0)
+        self.tab2layout.addWidget(self.implicit_fair_check, 0, 0)
+        self.tab2layout.addWidget(self.implicit_fair_iterations_label, 1, 0)
+        self.tab2layout.addWidget(self.implicit_fair_iterations, 1, 1)
+        self.tab2layout.addWidget(self.implicit_fair_step_size_label, 2, 0)
+        self.tab2layout.addWidget(self.implicit_fair_step_size, 2, 1)
+        self.tab2layout.addWidget(self.implicit_fair_label, 3, 0, 1, 2)
+        self.tab2layout.addWidget(self.implicit_fair_label2, 4, 0, 1, 2)
+        
+        self.tab2layout.addWidget(self.implicit_fair_file, 10, 0)
+        self.tab2layout.addWidget(self.implicit_fair_dir, 10, 1)
         
         grid.addWidget(self.morpholog, 16, 0, 2, 4)
         grid.addWidget(self.threedview, 0, 2, 16, 2)
@@ -147,6 +171,7 @@ class MainWidget(QtGui.QWidget):
     def OpenFileDialog(self):
         """Method for loading .ply surface mesh files."""
         filepath = QtGui.QFileDialog.getOpenFileName(self, 'Open File', self.open_file_dialog_path)
+        self.filepath = filepath
         self.open_file_dialog_path = os.path.dirname(filepath)
         
         if not len(filepath):
@@ -155,6 +180,7 @@ class MainWidget(QtGui.QWidget):
         print "Opening file..."
         filename = os.path.split(filepath)[1]
         self.openlabel.setText(filename)
+        self.filename = filename
         self.TopoMesh = topomesh.TopoMesh(filepath)
         self.mayaviview = MayaviView(self.TopoMesh.mesh,1)
         print "File open!"
@@ -179,7 +205,7 @@ class MainWidget(QtGui.QWidget):
                                       self.DNEOptionsWindow.dneiteration.text(), self.DNEOptionsWindow.dnestepsize.text(), 
                                       self.DNEOptionsWindow.dneconditioncontrolcheck.isChecked(), 
                                       self.DNEOptionsWindow.outliervgroup.isChecked(), self.DNEOptionsWindow.dneoutlierval.text(), 
-                                      self.DNEOptionsWindow.dneoutliertype1.isChecked())
+                                      self.DNEOptionsWindow.dneoutliertype1.isChecked(), self.filename)
                         
         if self.rficheck.isChecked():
             self.TopoMesh.GenerateRFI()
@@ -192,9 +218,7 @@ class MainWidget(QtGui.QWidget):
         
         Connected to Process File Button."""     
         if not self.dnecheck.isChecked() and not self.rficheck.isChecked() and not self.opcrcheck.isChecked():
-            print "No topographic variables have been selected for analysis."
-            return
-        
+            print "No topographic variables have been selected for analysis."    
         self.ProcessSurface()
         
         if self.dnecheck.isChecked():
@@ -251,6 +275,7 @@ class MainWidget(QtGui.QWidget):
            
         for filename in os.listdir(self.dirpath):
             if filename[-3:] == "ply":
+                self.filename = filename
                 print "Processing " + filename + "..."
                 self.TopoMesh = topomesh.TopoMesh(os.path.join(self.dirpath,filename))
                 self.ProcessSurface()
@@ -261,6 +286,27 @@ class MainWidget(QtGui.QWidget):
             else:
                 print filename + "does not have a .ply extension, skipping to next file."
         resultsfile.close()
+        
+    def fair_file(self):
+        print "Implicit fairing " + self.filename + "..."
+        self.fair_mesh(self.filepath)
+        self.mayaviview.VisualizeMesh(self.TopoMesh.mesh, 1)
+        
+    def fair_directory(self):
+        for filename in os.listdir(self.dirpath):
+            if filename[-3:] == "ply":
+                print "Implicit fairing " + filename + "..."
+                self.TopoMesh = topomesh.TopoMesh(os.path.join(self.dirpath,filename))
+                self.fair_mesh(os.path.join(self.dirpath,filename))
+    
+    def fair_mesh(self, filepath):
+        self.TopoMesh.implicit_fair_mesh(int(self.implicit_fair_iterations.text()), 
+                                         float(self.implicit_fair_step_size.text()))
+        filename = os.path.split(filepath)[1]
+        fairdir = os.path.join(os.path.dirname(filepath), 'faired-mesh', '')
+        if not os.path.exists(fairdir):
+            os.mkdir(fairdir)
+        self.TopoMesh.SaveArray(os.path.join(fairdir, (filename[:-4] + "-faired.ply")))
 
 class MayaviView(HasTraits):    
     """Class for 3D visualization of polygonal meshes and related 2D decorators.

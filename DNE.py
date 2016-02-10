@@ -56,9 +56,10 @@ class MeshDNE(object):
             removal is on, these are not counted toward DNE. 
         boundary_faces (list): Polygons forming mesh edges. Not counted toward
             DNE.
-        nan_faces (list): Any polygons resulting in NAN e values.    
+        nan_faces (list): Any polygons resulting in NAN e values.
+        filename (string): Filename of current mesh. Unused for now.  
     """
-    def __init__(self, TopoMesh, dosmooth, smoothit, smoothstep, docondition, dooutlier, outlierperc, outliertype):
+    def __init__(self, TopoMesh, dosmooth, smoothit, smoothstep, docondition, dooutlier, outlierperc, outliertype, fname):
         self.Mesh = TopoMesh
         self.dosmooth = dosmooth
         self.smoothit = smoothit
@@ -67,6 +68,7 @@ class MeshDNE(object):
         self.dooutlier = dooutlier
         self.outlierperc = float(outlierperc)
         self.outliertype = outliertype
+        self.fname = fname
         
         self.vert_tri_dict = None
         self.edgeverts = None
@@ -94,8 +96,9 @@ class MeshDNE(object):
             self.Mesh = pcopy(self.Mesh)
             self.Mesh.vertices = implicitfair.smooth(self.Mesh.vertices, self.Mesh.faces, int(self.smoothit), float(self.smoothstep), self.vert_tri_dict)
             if self.Mesh.vertices == "!":
+                print "Cholesky error"
                 return "!"    
-        
+
         # creation of array of vertices per edge
         self._get_edge_verts()
         # list of boundary faces

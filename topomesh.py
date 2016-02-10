@@ -7,6 +7,9 @@ import plython
 import DNE
 import OPC
 import RFI
+import implicitfair
+
+from collections import defaultdict
 
 class TopoMesh(plython.PlythonMesh):
     """A class for creating and interacting with triangulated polygon meshes and topographic variables.
@@ -21,8 +24,8 @@ class TopoMesh(plython.PlythonMesh):
         
     Attributes:
         mesh (list): Triangulated polygon mesh data. Contains three ndarrays:
-            vertex XYZ points, polygons with component vertex indices, and 
-            polygons with component vertex XYZ points. 
+            vertex XYZ points, polygons with component vertex XYZ points, 
+            and polygons with component vertex indices. 
         nvert (int): Number of vertices in mesh. 
         nface (int): Number of polygons in mesh.
         vertices (ndarray): Vertex XYZ points for mesh.
@@ -62,7 +65,7 @@ class TopoMesh(plython.PlythonMesh):
         self.OPClist = None
         self.OPCscalars = None
         
-    def GenerateDNE(self, dosmooth, smoothit, smoothstep, docondition, dooutlier, outlierperc, outliertype):
+    def GenerateDNE(self, dosmooth, smoothit, smoothstep, docondition, dooutlier, outlierperc, outliertype, filename):
         """Calculates Dirichlet normal energy (surface bending) from mesh data.
         
         For details on args, see DNE.MeshDNE class. 
@@ -79,7 +82,7 @@ class TopoMesh(plython.PlythonMesh):
         """
         self.check_for_mesh(self.GenerateDNE)
         
-        surfcurv = DNE.MeshDNE(self, dosmooth, smoothit, smoothstep, docondition, dooutlier, outlierperc, outliertype)
+        surfcurv = DNE.MeshDNE(self, dosmooth, smoothit, smoothstep, docondition, dooutlier, outlierperc, outliertype, filename)
         self.DNE = surfcurv.DNE
         self.DNEscalars = surfcurv.equantity
         self.conditionfaces = surfcurv.high_condition_faces
@@ -114,6 +117,25 @@ class TopoMesh(plython.PlythonMesh):
         self.OPCR = surfcomp.OPCR
         self.OPClist = surfcomp.opc_list
         self.OPCscalars = surfcomp.colormap_list[0]
+        
+    def implicit_fair_mesh(self, iterations, step):
+        self.get_vert_tri_dict()
+        faired_vertices = implicitfair.smooth(self.vertices, self.faces, iterations, step, self.vert_tri_dict)
+        self.vertices = faired_vertices
+        self.mesh[0] = faired_vertices
+        
+        for i in range(len(self.triverts)):
+            self.triverts[i] = self.vertices[self.faces[i]]
+            
+        self.mesh[1] = self.triverts
+    
+    def get_vert_tri_dict(self):
+        """Generates dictionary associating vertex index keys with related polygon index values.""" 
+        self.vert_tri_dict = defaultdict(list)
+        
+        for findex, face in enumerate(self.faces):
+            for vertex in face:
+                self.vert_tri_dict[vertex].append(findex)
     
     def check_for_mesh(self, function="function"):
         if self.mesh == None:
